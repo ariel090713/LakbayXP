@@ -1,0 +1,82 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Enums\UserRole;
+use App\Http\Controllers\Controller;
+use App\Models\User;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
+class AuthController extends Controller
+{
+    /**
+     * Authenticate a mobile user via Firebase ID token and return a Sanctum token.
+     *
+     * POST /api/auth/firebase
+     */
+    public function firebaseLogin(Request $request): JsonResponse
+    {
+        $request->validate([
+            'firebase_token' => ['required', 'string'],
+        ]);
+
+        try {
+            $firebaseToken = $request->input('firebase_token');
+
+            // Verify Firebase ID token via kreait/laravel-firebase
+            $auth = app('firebase.auth');
+            $verifiedToken = $auth->verifyIdToken($firebaseToken);
+
+            $firebaseUid = $verifiedToken->claims()->get('sub');
+            $email = $verifiedToken->claims()->get('email');
+            $name = $verifiedToken->claims()->get('name') ?? $email;
+            $googleId = $verifiedToken->claims()->get('firebase')['identities']['google.com'][0] ?? null;
+
+            // Find or create local user (mobile users always get 'user' role)
+            $user = User::firstOrCreate(
+                ['firebase_uid' => $firebaseUid],
+                [
+                    'name' => $name,
+                    'email' => $email,
+                    'username' => Str::slug(explode('@', $email)[0]) . '-' . Str::random(4),
+                    'google_id' => $googleId,
+                    'role' => UserRole::User,
+                ]
+            );
+
+            // Issue Sanctum token for API access
+            $token = $user->createToken('mobile-app')->plainTextToken;
+
+            return response()->json([
+                'token' => $token,
+                'user' => $user,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Invalid Firebase token.',
+            ], 401);
+        }
+    }
+
+    /**
+     * Store or update the authenticated user's FCM token for push notifications.
+     *
+     * POST /api/auth/fcm-token
+     */
+    public function updateFcmToken(Request $request): JsonResponse
+    {
+        $request->validate([
+            'fcm_token' => ['required', 'string'],
+        ]);
+
+        $request->user()->update([
+            'fcm_token' => $request->input('fcm_token'),
+        ]);
+
+        return response()->json([
+            'message' => 'FCM token updated',
+        ]);
+    }
+}
