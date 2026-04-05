@@ -30,9 +30,9 @@ Route::middleware(['auth'])->group(function () {
 
 require __DIR__.'/auth.php';
 
-// Firebase Google sign-in for web organizers
-Route::post('/auth/firebase-google', [\App\Http\Controllers\Auth\FirebaseWebAuthController::class, 'handleGoogleSignIn'])
-    ->name('auth.firebase-google');
+// Google OAuth for organizer login/register
+Route::get('/auth/google', [\App\Http\Controllers\Auth\GoogleAuthController::class, 'redirect'])->name('auth.google');
+Route::get('/auth/google/callback', [\App\Http\Controllers\Auth\GoogleAuthController::class, 'callback'])->name('auth.google.callback');
 
 // Admin dashboard routes (Laravel session auth)
 Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {

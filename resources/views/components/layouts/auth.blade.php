@@ -67,15 +67,6 @@
                 </div>
             </div>
         </div>
-        <!-- Firebase config for Google auth -->
-        <div id="firebase-config" class="hidden"
-            data-api-key="{{ env('VITE_FIREBASE_API_KEY') }}"
-            data-auth-domain="{{ env('VITE_FIREBASE_AUTH_DOMAIN') }}"
-            data-project-id="{{ env('VITE_FIREBASE_PROJECT_ID') }}"
-            data-app-id="{{ env('VITE_FIREBASE_APP_ID') }}"
-            data-route-url="{{ route('auth.firebase-google') }}">
-        </div>
-        <script type="module" src="/js/firebase-auth.js"></script>
         @fluxScripts
     </body>
 </html>
