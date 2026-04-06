@@ -25,7 +25,7 @@ class OrganizerEventPhotoController extends Controller
             'caption' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $path = Storage::disk('s3')->putFile('event-photos', $request->file('photo'), 'public');
+        $path = Storage::disk()->putFile('event-photos', $request->file('photo'));
 
         EventPhoto::create([
             'event_id' => $event->id,

@@ -24,7 +24,7 @@ class ProfileController extends Controller
         $user = $request->user();
 
         if ($request->hasFile('avatar')) {
-            $path = Storage::disk('s3')->putFile('avatars', $request->file('avatar'), 'public');
+            $path = Storage::disk()->putFile('avatars', $request->file('avatar'));
             $user->avatar_path = $path;
         }
 

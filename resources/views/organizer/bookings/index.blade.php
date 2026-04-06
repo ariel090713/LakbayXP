@@ -1,4 +1,4 @@
-<x-layouts.app>
+<x-layouts.organizer>
     <div class="space-y-6">
         <div class="flex items-center justify-between">
             <flux:heading size="xl">Bookings — {{ $event->title }}</flux:heading>
@@ -118,4 +118,4 @@
             @endif
         </div>
     </div>
-</x-layouts.app>
+</x-layouts.organizer>

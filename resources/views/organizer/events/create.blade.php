@@ -1,105 +1,226 @@
-<x-layouts.app>
-    <div class="max-w-3xl space-y-6">
-        <flux:heading size="xl">Create Event</flux:heading>
+<x-layouts.organizer>
+    <div class="max-w-4xl space-y-6">
+        <div class="flex items-center justify-between">
+            <h1 class="text-xl font-bold text-gray-900">Create Event</h1>
+            <a href="{{ route('organizer.events.index') }}" class="text-sm text-gray-500 hover:text-gray-700">← Back</a>
+        </div>
 
         @if($errors->any())
-            <flux:callout variant="danger">
-                <p>Please fix the following errors:</p>
-                <ul class="mt-1 list-inside list-disc text-sm">
-                    @foreach($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
+            <div class="p-4 rounded-xl bg-red-50 border border-red-200">
+                <ul class="text-sm text-red-700 space-y-1">
+                    @foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach
                 </ul>
-            </flux:callout>
+            </div>
         @endif
 
         <form method="POST" action="{{ route('organizer.events.store') }}" class="space-y-6">
             @csrf
 
-            <div class="grid gap-6 sm:grid-cols-2">
-                <flux:field>
-                    <flux:label>Title</flux:label>
-                    <flux:input name="title" value="{{ old('title') }}" required />
-                    <flux:error name="title" />
-                </flux:field>
-
-                <flux:field>
-                    <flux:label>Slug</flux:label>
-                    <flux:input name="slug" value="{{ old('slug') }}" required />
-                    <flux:error name="slug" />
-                </flux:field>
+            <!-- Basic Info -->
+            <div class="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
+                <h2 class="font-bold text-gray-900">📋 Basic Information</h2>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Event Title</label>
+                        <input type="text" name="title" value="{{ old('title') }}" required placeholder="e.g. Mt. Pulag Sea of Clouds Adventure" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Slug (URL-friendly)</label>
+                        <input type="text" name="slug" value="{{ old('slug') }}" required placeholder="mt-pulag-sea-of-clouds" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea name="description" rows="3" placeholder="Describe the adventure..." class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">{{ old('description') }}</textarea>
+                </div>
             </div>
 
-            <flux:field>
-                <flux:label>Description</flux:label>
-                <flux:textarea name="description" rows="4">{{ old('description') }}</flux:textarea>
-                <flux:error name="description" />
-            </flux:field>
-
-            <div class="grid gap-6 sm:grid-cols-2">
-                <flux:field>
-                    <flux:label>Place</flux:label>
-                    <flux:select name="place_id" required>
-                        <flux:select.option value="">Select a place</flux:select.option>
-                        @foreach($places as $place)
-                            <flux:select.option value="{{ $place->id }}" :selected="old('place_id') == $place->id">
-                                {{ $place->name }}
-                            </flux:select.option>
-                        @endforeach
-                    </flux:select>
-                    <flux:error name="place_id" />
-                </flux:field>
-
-                <flux:field>
-                    <flux:label>Category</flux:label>
-                    <flux:select name="category" required>
-                        <flux:select.option value="">Select category</flux:select.option>
-                        @foreach($categories as $category)
-                            <flux:select.option value="{{ $category->value }}" :selected="old('category') === $category->value">
-                                {{ ucwords(str_replace('_', ' ', $category->value)) }}
-                            </flux:select.option>
-                        @endforeach
-                    </flux:select>
-                    <flux:error name="category" />
-                </flux:field>
+            <!-- Schedule & Logistics -->
+            <div class="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
+                <h2 class="font-bold text-gray-900">📅 Schedule & Logistics</h2>
+                <div class="grid gap-4 sm:grid-cols-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                        <input type="date" name="event_date" value="{{ old('event_date') }}" required class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">End Date <span class="text-gray-400">(multi-day)</span></label>
+                        <input type="date" name="end_date" value="{{ old('end_date') }}" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Difficulty</label>
+                        <select name="difficulty" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
+                            <option value="">Select...</option>
+                            <option value="easy" {{ old('difficulty') === 'easy' ? 'selected' : '' }}>Easy (beginner-friendly)</option>
+                            <option value="moderate" {{ old('difficulty') === 'moderate' ? 'selected' : '' }}>Moderate</option>
+                            <option value="hard" {{ old('difficulty') === 'hard' ? 'selected' : '' }}>Hard</option>
+                            <option value="extreme" {{ old('difficulty') === 'extreme' ? 'selected' : '' }}>Extreme</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="grid gap-4 sm:grid-cols-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Meeting Place</label>
+                        <input type="text" name="meeting_place" value="{{ old('meeting_place') }}" placeholder="e.g. Baguio City, Session Road" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Meeting Time</label>
+                        <input type="text" name="meeting_time" value="{{ old('meeting_time') }}" placeholder="e.g. 5:00 AM" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Fee (₱)</label>
+                        <input type="number" name="fee" value="{{ old('fee', 0) }}" min="0" step="0.01" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                    </div>
+                </div>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Max Slots</label>
+                        <input type="number" name="max_slots" value="{{ old('max_slots') }}" min="1" required class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                    </div>
+                    <div class="flex items-end pb-1">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" name="auto_approve_bookings" value="1" {{ old('auto_approve_bookings') ? 'checked' : '' }} class="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                            <span class="text-sm text-gray-700">Auto-approve bookings</span>
+                        </label>
+                    </div>
+                </div>
             </div>
 
-            <div class="grid gap-6 sm:grid-cols-3">
-                <flux:field>
-                    <flux:label>Event Date</flux:label>
-                    <flux:input type="date" name="event_date" value="{{ old('event_date') }}" required />
-                    <flux:error name="event_date" />
-                </flux:field>
-
-                <flux:field>
-                    <flux:label>Fee (₱)</flux:label>
-                    <flux:input type="number" name="fee" value="{{ old('fee', '0') }}" step="0.01" min="0" />
-                    <flux:error name="fee" />
-                </flux:field>
-
-                <flux:field>
-                    <flux:label>Max Slots</flux:label>
-                    <flux:input type="number" name="max_slots" value="{{ old('max_slots') }}" min="1" required />
-                    <flux:error name="max_slots" />
-                </flux:field>
+            <!-- Itinerary -->
+            <div class="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="font-bold text-gray-900">🗺️ Itinerary</h2>
+                        <p class="text-xs text-gray-400 mt-1">Add places to visit. System places earn XP & points. Custom places don't.</p>
+                    </div>
+                    <button type="button" onclick="addItineraryRow()" class="text-xs font-semibold text-emerald-600 hover:text-emerald-700">+ Add Stop</button>
+                </div>
+                <div id="itinerary-container" class="space-y-3">
+                    <!-- JS will add rows here -->
+                </div>
             </div>
 
-            <flux:field>
-                <flux:label>Meeting Place</flux:label>
-                <flux:input name="meeting_place" value="{{ old('meeting_place') }}" />
-                <flux:error name="meeting_place" />
-            </flux:field>
-
-            <flux:field>
-                <flux:label>Auto-Approve Bookings</flux:label>
-                <flux:checkbox name="auto_approve_bookings" value="1" :checked="old('auto_approve_bookings')" label="Automatically approve new bookings" />
-                <flux:error name="auto_approve_bookings" />
-            </flux:field>
+            <!-- Rules & Instructions -->
+            <div class="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="font-bold text-gray-900">📜 Rules & Instructions</h2>
+                        <p class="text-xs text-gray-400 mt-1">Set requirements, inclusions, reminders, and policies for participants.</p>
+                    </div>
+                    <button type="button" onclick="addRuleRow()" class="text-xs font-semibold text-emerald-600 hover:text-emerald-700">+ Add Rule</button>
+                </div>
+                <div id="rules-container" class="space-y-3">
+                    <!-- JS will add rows here -->
+                </div>
+            </div>
 
             <div class="flex items-center gap-3">
-                <flux:button type="submit" variant="primary">Create Event</flux:button>
-                <flux:button href="{{ route('organizer.events.index') }}">Cancel</flux:button>
+                <button type="button" onclick="showModal('create-modal')" class="px-6 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-cyan-500 rounded-xl hover:from-emerald-600 hover:to-cyan-600 transition-all shadow-md shadow-emerald-500/20">Create Event</button>
+                <a href="{{ route('organizer.events.index') }}" class="px-6 py-2.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors">Cancel</a>
             </div>
         </form>
     </div>
-</x-layouts.app>
+
+    <!-- Create Confirmation Modal -->
+    <div id="create-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl">
+            <div class="text-center">
+                <span class="text-4xl block mb-3">📅</span>
+                <h3 class="text-lg font-extrabold text-gray-900">Create Event?</h3>
+                <p class="text-sm text-gray-500 mt-1">Your event will be saved as a draft. You can edit it before submitting for review.</p>
+            </div>
+            <div class="flex gap-3 mt-6">
+                <button type="button" onclick="hideModal('create-modal')" class="flex-1 py-2.5 rounded-xl bg-gray-100 text-sm font-bold text-gray-600 hover:bg-gray-200 transition-colors">Cancel</button>
+                <button type="button" onclick="hideModal('create-modal'); document.querySelector('form').submit();" class="flex-1 py-2.5 rounded-xl text-sm font-bold text-white shadow-md" style="background: linear-gradient(135deg, #059669, #0891b2);">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const placesJson = @json($places->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'category' => $p->category->value]));
+
+        function addItineraryRow() {
+            const container = document.getElementById('itinerary-container');
+            const i = container.children.length;
+            const placeOptions = placesJson.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+
+            const row = document.createElement('div');
+            row.className = 'p-4 rounded-xl border border-gray-100 bg-gray-50/50 space-y-3 itinerary-row';
+            row.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-gray-500">Stop #${i + 1}</span>
+                    <button type="button" onclick="this.closest('.itinerary-row').remove()" class="text-xs text-red-400 hover:text-red-600">Remove</button>
+                </div>
+                <div class="grid gap-3 sm:grid-cols-2">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">System Place <span class="text-gray-400">(earns XP)</span></label>
+                        <select name="itinerary_place_ids[]" onchange="toggleCustom(this)" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm">
+                            <option value="">— Custom place (no XP) —</option>
+                            ${placeOptions}
+                        </select>
+                    </div>
+                    <div class="custom-fields">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Custom Place Name</label>
+                        <input type="text" name="itinerary_custom_names[]" placeholder="e.g. Secret Beach Cove" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
+                    </div>
+                </div>
+                <div class="custom-fields">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Custom Location</label>
+                    <input type="text" name="itinerary_custom_locations[]" placeholder="e.g. Near Coron, Palawan" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
+                </div>
+                <div class="grid gap-3 sm:grid-cols-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Day #</label>
+                        <input type="number" name="itinerary_days[]" value="1" min="1" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Time</label>
+                        <input type="text" name="itinerary_times[]" placeholder="6:00 AM - 12:00 PM" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Activity</label>
+                        <input type="text" name="itinerary_activities[]" placeholder="e.g. Summit climb" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+                    <input type="text" name="itinerary_notes[]" placeholder="Optional notes" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm" />
+                </div>
+            `;
+            container.appendChild(row);
+        }
+
+        function toggleCustom(select) {
+            const row = select.closest('.itinerary-row');
+            const customFields = row.querySelectorAll('.custom-fields');
+            customFields.forEach(f => f.style.display = select.value ? 'none' : 'block');
+        }
+
+        function addRuleRow() {
+            const container = document.getElementById('rules-container');
+            const row = document.createElement('div');
+            row.className = 'flex gap-3 items-start rule-row';
+            row.innerHTML = `
+                <select name="rule_types[]" class="w-40 shrink-0 px-3 py-2 rounded-lg border border-gray-200 text-sm">
+                    <option value="requirement">📋 Requirement</option>
+                    <option value="inclusion">✅ Inclusion</option>
+                    <option value="exclusion">❌ Exclusion</option>
+                    <option value="reminder">⚠️ Reminder</option>
+                    <option value="policy">📜 Policy</option>
+                    <option value="instruction">📝 Instruction</option>
+                    <option value="what_to_bring">🎒 What to Bring</option>
+                </select>
+                <input type="text" name="rule_contents[]" placeholder="e.g. Bring valid ID, medical certificate" class="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm" />
+                <button type="button" onclick="this.closest('.rule-row').remove()" class="text-red-400 hover:text-red-600 text-sm mt-2">✕</button>
+            `;
+            container.appendChild(row);
+        }
+
+        // Add one itinerary row and a few default rules by default
+        addItineraryRow();
+        addRuleRow();
+
+        function showModal(id) { document.getElementById(id).classList.remove('hidden'); document.getElementById(id).classList.add('flex'); }
+        function hideModal(id) { document.getElementById(id).classList.add('hidden'); document.getElementById(id).classList.remove('flex'); }
+    </script>
+</x-layouts.organizer>

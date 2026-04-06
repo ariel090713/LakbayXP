@@ -16,6 +16,7 @@ class UnlockService
 {
     public function __construct(
         protected AchievementService $achievementService,
+        protected XpService $xpService,
     ) {}
 
     /**
@@ -52,7 +53,7 @@ class UnlockService
         // Store proof photo on S3 if provided
         $storedPhotoPath = null;
         if ($proofPhotoPath !== null) {
-            $storedPhotoPath = Storage::disk('s3')->putFile('proof-photos', $proofPhotoPath, 'public');
+            $storedPhotoPath = Storage::disk()->putFile('proof-photos', $proofPhotoPath);
         }
 
         $unlock = PlaceUnlock::create([
@@ -65,7 +66,12 @@ class UnlockService
             'verified_at' => $verifier ? now() : null,
         ]);
 
-        // Trigger achievement recalculation
+        // Award XP from place (for leveling)
+        if ($place->xp_reward > 0) {
+            $this->xpService->awardXp($user, $place->xp_reward);
+        }
+
+        // Trigger achievement recalculation (badges give points for rewards)
         $this->achievementService->checkAndAwardBadges($user);
 
         return $unlock;

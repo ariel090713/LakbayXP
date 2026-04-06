@@ -53,15 +53,10 @@ class AchievementService
                 $newBadges->push($badge);
                 $this->notificationService->notifyBadgeAwarded($user, $badge);
 
-                // Award points from badge
+                // Award points from badge (for rewards redemption)
                 if ($badge->points > 0) {
                     $user->increment('total_points', $badge->points);
                     $user->increment('available_points', $badge->points);
-                }
-
-                // Award XP from badge
-                if ($badge->xp_reward > 0) {
-                    $this->xpService->awardXp($user, $badge->xp_reward);
                 }
             }
         }

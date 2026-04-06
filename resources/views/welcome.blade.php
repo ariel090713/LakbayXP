@@ -7,6 +7,8 @@
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700&family=plus-jakarta-sans:400,500,600,700,800" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         body { font-family: 'Plus Jakarta Sans', 'Instrument Sans', sans-serif; }
         .gradient-text {
@@ -23,6 +25,29 @@
         .float-animation { animation: float 6s ease-in-out infinite; }
         @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
         .blob { border-radius: 30% 70% 70% 30%/30% 30% 70% 70%; animation: blob 8s ease-in-out infinite; }
+
+        /* Marquee infinite scroll */
+        .marquee-track { overflow: hidden; width: 100%; }
+        .marquee-scroll { display: flex; gap: 1.25rem; width: max-content; animation: marquee-left 40s linear infinite; }
+        .marquee-reverse { animation: marquee-right 45s linear infinite; }
+        .marquee-track:hover .marquee-scroll { animation-play-state: paused; }
+        @keyframes marquee-left { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        @keyframes marquee-right { 0% { transform: translateX(-50%); } 100% { transform: translateX(0); } }
+
+        /* Map marker animations */
+        .map-ping { animation: map-ping 3s ease-in-out infinite; }
+        .map-marker { animation: map-glow 2s ease-in-out infinite; cursor: pointer; }
+        .map-float { animation: float 6s ease-in-out infinite; }
+        @keyframes map-ping { 0%,100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.5); } }
+        @keyframes map-glow { 0%,100% { opacity: 0.85; } 50% { opacity: 1; } }
+
+        /* Leaflet popup override */
+        .map-popup .leaflet-popup-content-wrapper { background: rgba(15,23,42,0.92); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: #fff; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+        .map-popup .leaflet-popup-tip { background: rgba(15,23,42,0.92); }
+        .map-popup .leaflet-popup-close-button { color: rgba(255,255,255,0.5); }
+        .map-popup .leaflet-popup-close-button:hover { color: #fff; }
+        #ph-map { background: transparent; }
+        #ph-map .leaflet-control-attribution { display: none; }
         @keyframes blob { 0%,100%{border-radius:30% 70% 70% 30%/30% 30% 70% 70%} 50%{border-radius:70% 30% 30% 70%/70% 70% 30% 30%} }
         .xp-bar { background: linear-gradient(90deg, #059669, #0891b2, #6366f1); }
     </style>
@@ -122,31 +147,142 @@
     </section>
 
     <!-- How It Works -->
-    <section class="py-20 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-16">
-                <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">How LakbayXP Works</h2>
-                <p class="text-gray-500 text-lg max-w-xl mx-auto">Your journey from Level 1 to Level 100.</p>
+    <section class="py-28 overflow-hidden relative" style="background: linear-gradient(180deg, #f0fdf4 0%, #ecfeff 30%, #eef2ff 60%, #fdf2f8 85%, #fff 100%);">
+        {{-- Floating background icons --}}
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div class="absolute top-16 left-[8%] text-7xl opacity-[0.07] float-animation" style="animation-delay:-1s">🔍</div>
+            <div class="absolute top-[20%] right-[5%] text-8xl opacity-[0.06] float-animation" style="animation-delay:-3s">🎫</div>
+            <div class="absolute top-[40%] left-[3%] text-9xl opacity-[0.05] float-animation" style="animation-delay:-5s">🏔️</div>
+            <div class="absolute top-[55%] right-[8%] text-7xl opacity-[0.07] float-animation" style="animation-delay:-2s">⚡</div>
+            <div class="absolute top-[75%] left-[6%] text-8xl opacity-[0.06] float-animation" style="animation-delay:-4s">🎁</div>
+            <div class="absolute bottom-20 right-[12%] text-6xl opacity-[0.05] float-animation" style="animation-delay:-6s">🚀</div>
+            {{-- Blurred blobs --}}
+            <div class="absolute top-32 -left-20 w-72 h-72 bg-emerald-200/30 rounded-full blur-3xl"></div>
+            <div class="absolute top-[45%] -right-20 w-80 h-80 bg-cyan-200/20 rounded-full blur-3xl"></div>
+            <div class="absolute bottom-32 left-1/4 w-64 h-64 bg-indigo-200/20 rounded-full blur-3xl"></div>
+            <div class="absolute bottom-10 right-1/4 w-56 h-56 bg-rose-200/20 rounded-full blur-3xl"></div>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+            <div class="text-center mb-20">
+                <span class="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/80 backdrop-blur text-emerald-700 text-sm font-bold uppercase tracking-wider mb-5 shadow-sm border border-emerald-100">Your Adventure Path</span>
+                <h2 class="text-4xl sm:text-6xl font-extrabold tracking-tight mb-5">How <span class="gradient-text">LakbayXP</span> Works</h2>
+                <p class="text-gray-500 text-xl max-w-xl mx-auto leading-relaxed">From curious explorer to legendary adventurer — here's your journey from Level 1 to Level 100.</p>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+
+            <!-- Vertical Timeline -->
+            <div class="relative">
+                <!-- Timeline Line (thicker, glowing) -->
+                <div class="absolute left-7 sm:left-1/2 sm:-translate-x-px top-0 bottom-0 w-1 rounded-full bg-gradient-to-b from-emerald-400 via-cyan-400 via-indigo-400 via-purple-400 to-rose-400 shadow-lg shadow-emerald-500/20"></div>
+
                 @php
                     $steps = [
-                        ['icon' => '🔍', 'title' => 'Discover', 'desc' => 'Browse events organized by verified leaders.', 'color' => 'emerald'],
-                        ['icon' => '🎫', 'title' => 'Book', 'desc' => 'Reserve your slot. Limited spots per trip.', 'color' => 'cyan'],
-                        ['icon' => '🏔️', 'title' => 'Conquer', 'desc' => 'Complete the adventure and unlock the place.', 'color' => 'indigo'],
-                        ['icon' => '⚡', 'title' => 'Earn XP', 'desc' => 'Get badges, XP, and points. Level up!', 'color' => 'purple'],
-                        ['icon' => '🎁', 'title' => 'Redeem', 'desc' => 'Trade points for exclusive freebies.', 'color' => 'rose'],
+                        [
+                            'icon' => '🔍',
+                            'title' => 'Discover Adventures',
+                            'desc' => 'Browse curated events organized by verified local guides and travel agencies. From mountain summits to hidden beaches — find the perfect adventure that matches your vibe.',
+                            'detail' => 'Filter by category, difficulty, date, and location',
+                            'color' => 'emerald',
+                            'number' => '01',
+                        ],
+                        [
+                            'icon' => '🎫',
+                            'title' => 'Book Your Slot',
+                            'desc' => 'Reserve your spot with just a tap. Each event has limited slots to keep groups small and the experience personal. Get instant confirmation from organizers.',
+                            'detail' => 'Auto-approve or manual review by organizer',
+                            'color' => 'cyan',
+                            'number' => '02',
+                        ],
+                        [
+                            'icon' => '🏔️',
+                            'title' => 'Conquer the Trail',
+                            'desc' => 'Show up, explore, and complete the adventure. Follow the itinerary, meet fellow explorers, and experience the Philippines like never before.',
+                            'detail' => 'Multi-day events with detailed itineraries',
+                            'color' => 'indigo',
+                            'number' => '03',
+                        ],
+                        [
+                            'icon' => '⚡',
+                            'title' => 'Earn XP, Badges & Unlock Places',
+                            'desc' => 'Every place you conquer gets unlocked on your profile and earns you XP to level up. Collect badges as trophies of your adventures — each badge also gives you redeemable points for freebies.',
+                            'detail' => 'XP for leveling, badges for bragging rights + points',
+                            'color' => 'purple',
+                            'number' => '04',
+                        ],
+                        [
+                            'icon' => '🎁',
+                            'title' => 'Redeem Rewards',
+                            'desc' => 'Trade your badge points for exclusive freebies — discounted trips, merch, partner deals, and more. The more you explore, the more you earn.',
+                            'detail' => 'New rewards added regularly by admin',
+                            'color' => 'rose',
+                            'number' => '05',
+                        ],
                     ];
                 @endphp
-                @foreach($steps as $i => $step)
-                    <div class="text-center">
-                        <div class="w-14 h-14 mx-auto mb-4 rounded-2xl bg-{{ $step['color'] }}-50 border border-{{ $step['color'] }}-100 flex items-center justify-center float-animation" style="animation-delay: {{ $i * -1.2 }}s">
-                            <span class="text-2xl">{{ $step['icon'] }}</span>
+
+                <div class="space-y-14 sm:space-y-20">
+                    @foreach($steps as $i => $step)
+                        @php $isLeft = $i % 2 === 0; @endphp
+                        <div class="relative flex items-start gap-6 sm:gap-0 group">
+                            {{-- Timeline Dot --}}
+                            <div class="absolute left-4 sm:left-1/2 sm:-translate-x-1/2 z-10 w-8 h-8 rounded-full bg-{{ $step['color'] }}-500 ring-[5px] ring-white shadow-xl shadow-{{ $step['color'] }}-500/40 group-hover:scale-125 transition-transform duration-300 flex items-center justify-center">
+                                <div class="w-3 h-3 rounded-full bg-white/80"></div>
+                            </div>
+
+                            {{-- Content --}}
+                            <div class="sm:w-[58%] {{ $isLeft ? 'sm:pr-14 ml-16 sm:ml-0' : 'sm:pl-14 sm:ml-auto ml-16' }}">
+                                @php
+                                    $tints = ['emerald'=>'#ecfdf5','cyan'=>'#ecfeff','indigo'=>'#eef2ff','purple'=>'#faf5ff','rose'=>'#fff1f2'];
+                                @endphp
+                                <div class="relative rounded-3xl p-8 sm:p-9 shadow-md hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 border border-{{ $step['color'] }}-100/60 overflow-hidden" style="background: linear-gradient(135deg, white 60%, {{ $tints[$step['color']] ?? '#f9fafb' }});">
+                                    {{-- Decorative background icon --}}
+                                    <div class="absolute -bottom-4 -right-4 text-8xl opacity-[0.06] pointer-events-none select-none">{{ $step['icon'] }}</div>
+                                    {{-- Colored accent bar --}}
+                                    <div class="absolute top-0 {{ $isLeft ? 'right-0' : 'left-0' }} w-1 h-full bg-gradient-to-b from-{{ $step['color'] }}-400 to-{{ $step['color'] }}-600 rounded-full"></div>
+
+                                    {{-- Arrow pointer (desktop only) --}}
+                                    <div class="hidden sm:block absolute top-9 {{ $isLeft ? '-right-2.5' : '-left-2.5' }} w-5 h-5 bg-white rotate-45 border-{{ $step['color'] }}-100/60 {{ $isLeft ? 'border-r border-t' : 'border-l border-b' }}"></div>
+
+                                    {{-- Step Number + Icon --}}
+                                    <div class="flex items-center gap-4 mb-5 relative">
+                                        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-{{ $step['color'] }}-50 to-{{ $step['color'] }}-100/50 border border-{{ $step['color'] }}-200/50 flex items-center justify-center text-3xl shrink-0 float-animation shadow-lg shadow-{{ $step['color'] }}-500/10" style="animation-delay: {{ $i * -1.5 }}s">
+                                            {{ $step['icon'] }}
+                                        </div>
+                                        <div>
+                                            <span class="text-xs font-extrabold text-{{ $step['color'] }}-400 uppercase tracking-widest">Step {{ $step['number'] }}</span>
+                                            <h3 class="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight leading-tight">{{ $step['title'] }}</h3>
+                                        </div>
+                                    </div>
+
+                                    {{-- Description --}}
+                                    <p class="text-base text-gray-500 leading-relaxed mb-5">{{ $step['desc'] }}</p>
+
+                                    {{-- Detail tag --}}
+                                    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-{{ $step['color'] }}-50 text-{{ $step['color'] }}-700">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                        <span class="text-sm font-semibold">{{ $step['detail'] }}</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <h3 class="text-base font-bold mb-1">{{ $step['title'] }}</h3>
-                        <p class="text-xs text-gray-500 leading-relaxed">{{ $step['desc'] }}</p>
+                    @endforeach
+                </div>
+
+                {{-- Final CTA at bottom of timeline --}}
+                <div class="relative mt-20 flex justify-center">
+                    <div class="absolute left-7 sm:left-1/2 sm:-translate-x-1/2 -top-10 w-0.5 h-10 bg-gradient-to-b from-rose-400 to-transparent"></div>
+                    <div class="relative z-10 text-center">
+                        <div class="w-20 h-20 mx-auto mb-5 rounded-full flex items-center justify-center text-4xl shadow-xl shadow-emerald-500/20 float-animation" style="background: linear-gradient(135deg, #059669, #0891b2);">
+                            🚀
+                        </div>
+                        <h3 class="text-2xl font-extrabold text-gray-900 mb-3">Ready to start your journey?</h3>
+                        <p class="text-base text-gray-400 mb-6">Download the app and begin your adventure today.</p>
+                        <a href="#download" class="inline-flex items-center gap-2 px-10 py-4 text-base font-bold text-white rounded-full shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300" style="background: linear-gradient(135deg, #059669, #0891b2);">
+                            Get Started
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                        </a>
                     </div>
-                @endforeach
+                </div>
             </div>
         </div>
     </section>
@@ -183,99 +319,354 @@
     </section>
 
     <!-- Popular Destinations -->
-    <section class="py-20 bg-gray-50">
+    <section class="py-20 bg-gray-50 overflow-hidden">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-10">
+            <div class="text-center mb-12">
                 <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-2">Popular Destinations</h2>
                 <p class="text-gray-500">Places our community loves the most.</p>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                @php
-                    $featuredPlaces = \App\Models\Place::where('is_active', true)
-                        ->withCount('unlockedByUsers')
-                        ->orderByDesc('unlocked_by_users_count')
-                        ->take(6)->get();
-                @endphp
-                @foreach($featuredPlaces as $place)
-                    <div class="card-hover group rounded-2xl bg-white border border-gray-100 overflow-hidden shadow-sm">
-                        <div class="h-44 bg-gradient-to-br from-emerald-100 to-cyan-50 flex items-center justify-center relative overflow-hidden">
-                            <span class="text-6xl opacity-60">{{ $categoryIcons[$place->category->value] ?? '📍' }}</span>
-                            <div class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur text-xs font-semibold text-emerald-700 border border-emerald-100">
-                                {{ $categoryLabels[$place->category->value] ?? $place->category->value }}
-                            </div>
-                        </div>
-                        <div class="p-5">
-                            <h3 class="text-lg font-bold text-gray-900 mb-1">{{ $place->name }}</h3>
-                            <p class="text-sm text-gray-500 mb-3">{{ $place->province ?? $place->region ?? 'Philippines' }}</p>
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-1.5 text-sm text-emerald-600 font-medium">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                    {{ $place->unlocked_by_users_count }} conquered
+        </div>
+
+        @php
+            $scrollPlaces = \App\Models\Place::where('is_active', true)
+                ->withCount('unlockedByUsers')
+                ->inRandomOrder()
+                ->take(24)
+                ->get();
+        @endphp
+
+        <!-- Infinite scroll marquee -->
+        <div class="relative">
+            <!-- Fade edges -->
+            <div class="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-gray-50 to-transparent z-10 pointer-events-none"></div>
+            <div class="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-gray-50 to-transparent z-10 pointer-events-none"></div>
+
+            <!-- Row 1 - scrolls left -->
+            <div class="marquee-track mb-5">
+                <div class="marquee-scroll">
+                    @foreach($scrollPlaces->take(12) as $place)
+                        <div class="marquee-card shrink-0 w-72 rounded-2xl bg-white border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
+                            <div class="h-36 bg-gradient-to-br from-emerald-100 to-cyan-50 flex items-center justify-center relative overflow-hidden">
+                                <span class="text-5xl opacity-50 group-hover:opacity-80 group-hover:scale-110 transition-all duration-300">{{ $categoryIcons[$place->category->value] ?? '📍' }}</span>
+                                <div class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur text-[10px] font-bold text-emerald-700 border border-emerald-100 uppercase tracking-wider">
+                                    {{ $categoryLabels[$place->category->value] ?? $place->category->value }}
                                 </div>
-                                @if($place->category->value === 'mountain' && isset($place->category_fields['meters_above_sea_level']))
-                                    <span class="text-xs text-gray-400 font-medium">{{ number_format($place->category_fields['meters_above_sea_level']) }} masl</span>
+                                @if($place->experience_points)
+                                    <div class="absolute bottom-3 left-3 px-2 py-0.5 rounded-lg bg-white/90 backdrop-blur text-[10px] font-bold text-indigo-600">⚡ {{ $place->experience_points }} XP</div>
                                 @endif
                             </div>
+                            <div class="p-4">
+                                <h3 class="text-base font-bold text-gray-900 mb-0.5 truncate group-hover:text-emerald-700 transition-colors">{{ $place->name }}</h3>
+                                <p class="text-xs text-gray-400 mb-2">{{ $place->province ?? $place->region ?? 'Philippines' }}</p>
+                                <div class="flex items-center gap-1.5 text-xs text-emerald-600 font-semibold">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    {{ $place->unlocked_by_users_count }} conquered
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                @endforeach
+                    @endforeach
+                    {{-- Duplicate for seamless loop --}}
+                    @foreach($scrollPlaces->take(12) as $place)
+                        <div class="marquee-card shrink-0 w-72 rounded-2xl bg-white border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
+                            <div class="h-36 bg-gradient-to-br from-emerald-100 to-cyan-50 flex items-center justify-center relative overflow-hidden">
+                                <span class="text-5xl opacity-50 group-hover:opacity-80 group-hover:scale-110 transition-all duration-300">{{ $categoryIcons[$place->category->value] ?? '📍' }}</span>
+                                <div class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur text-[10px] font-bold text-emerald-700 border border-emerald-100 uppercase tracking-wider">
+                                    {{ $categoryLabels[$place->category->value] ?? $place->category->value }}
+                                </div>
+                                @if($place->experience_points)
+                                    <div class="absolute bottom-3 left-3 px-2 py-0.5 rounded-lg bg-white/90 backdrop-blur text-[10px] font-bold text-indigo-600">⚡ {{ $place->experience_points }} XP</div>
+                                @endif
+                            </div>
+                            <div class="p-4">
+                                <h3 class="text-base font-bold text-gray-900 mb-0.5 truncate group-hover:text-emerald-700 transition-colors">{{ $place->name }}</h3>
+                                <p class="text-xs text-gray-400 mb-2">{{ $place->province ?? $place->region ?? 'Philippines' }}</p>
+                                <div class="flex items-center gap-1.5 text-xs text-emerald-600 font-semibold">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    {{ $place->unlocked_by_users_count }} conquered
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+
+            <!-- Row 2 - scrolls right (reverse) -->
+            <div class="marquee-track">
+                <div class="marquee-scroll marquee-reverse">
+                    @foreach($scrollPlaces->skip(12) as $place)
+                        <div class="marquee-card shrink-0 w-72 rounded-2xl bg-white border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
+                            <div class="h-36 bg-gradient-to-br from-indigo-100 to-purple-50 flex items-center justify-center relative overflow-hidden">
+                                <span class="text-5xl opacity-50 group-hover:opacity-80 group-hover:scale-110 transition-all duration-300">{{ $categoryIcons[$place->category->value] ?? '📍' }}</span>
+                                <div class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur text-[10px] font-bold text-indigo-700 border border-indigo-100 uppercase tracking-wider">
+                                    {{ $categoryLabels[$place->category->value] ?? $place->category->value }}
+                                </div>
+                                @if($place->experience_points)
+                                    <div class="absolute bottom-3 left-3 px-2 py-0.5 rounded-lg bg-white/90 backdrop-blur text-[10px] font-bold text-indigo-600">⚡ {{ $place->experience_points }} XP</div>
+                                @endif
+                            </div>
+                            <div class="p-4">
+                                <h3 class="text-base font-bold text-gray-900 mb-0.5 truncate group-hover:text-emerald-700 transition-colors">{{ $place->name }}</h3>
+                                <p class="text-xs text-gray-400 mb-2">{{ $place->province ?? $place->region ?? 'Philippines' }}</p>
+                                <div class="flex items-center gap-1.5 text-xs text-emerald-600 font-semibold">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    {{ $place->unlocked_by_users_count }} conquered
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                    {{-- Duplicate for seamless loop --}}
+                    @foreach($scrollPlaces->skip(12) as $place)
+                        <div class="marquee-card shrink-0 w-72 rounded-2xl bg-white border border-gray-100 overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
+                            <div class="h-36 bg-gradient-to-br from-indigo-100 to-purple-50 flex items-center justify-center relative overflow-hidden">
+                                <span class="text-5xl opacity-50 group-hover:opacity-80 group-hover:scale-110 transition-all duration-300">{{ $categoryIcons[$place->category->value] ?? '📍' }}</span>
+                                <div class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur text-[10px] font-bold text-indigo-700 border border-indigo-100 uppercase tracking-wider">
+                                    {{ $categoryLabels[$place->category->value] ?? $place->category->value }}
+                                </div>
+                                @if($place->experience_points)
+                                    <div class="absolute bottom-3 left-3 px-2 py-0.5 rounded-lg bg-white/90 backdrop-blur text-[10px] font-bold text-indigo-600">⚡ {{ $place->experience_points }} XP</div>
+                                @endif
+                            </div>
+                            <div class="p-4">
+                                <h3 class="text-base font-bold text-gray-900 mb-0.5 truncate group-hover:text-emerald-700 transition-colors">{{ $place->name }}</h3>
+                                <p class="text-xs text-gray-400 mb-2">{{ $place->province ?? $place->region ?? 'Philippines' }}</p>
+                                <div class="flex items-center gap-1.5 text-xs text-emerald-600 font-semibold">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    {{ $place->unlocked_by_users_count }} conquered
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
             </div>
         </div>
     </section>
 
-    <!-- Upcoming Events -->
-    <section id="events" class="py-20 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-12">
-                <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Upcoming Adventures</h2>
-                <p class="text-gray-500 text-lg max-w-xl mx-auto">Join organized trips led by verified community organizers.</p>
+    <!-- Unlock Places -->
+    <section class="py-24 bg-white relative overflow-hidden">
+        {{-- Background decorations --}}
+        <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 via-cyan-400 to-indigo-400"></div>
+        <div class="absolute -top-32 -right-32 w-64 h-64 bg-emerald-100/40 rounded-full blur-3xl"></div>
+        <div class="absolute -bottom-32 -left-32 w-64 h-64 bg-cyan-100/40 rounded-full blur-3xl"></div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+            <div class="text-center mb-16">
+                <span class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-wider mb-4">🔓 Place Collection</span>
+                <h2 class="text-3xl sm:text-5xl font-extrabold tracking-tight mb-4">Unlock Places. <span class="gradient-text">Build Your Map.</span></h2>
+                <p class="text-gray-400 text-lg max-w-2xl mx-auto">Every adventure you complete unlocks the places you've conquered. Watch your personal map grow as you explore the Philippines — one destination at a time.</p>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+            {{-- How Unlocking Works - 3 cards --}}
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
                 @php
-                    $upcomingEvents = \App\Models\Event::whereIn('status', ['published', 'full'])
-                        ->where('event_date', '>=', now())
-                        ->with(['place', 'organizer'])
-                        ->orderBy('event_date')->take(6)->get();
+                    $unlockSteps = [
+                        [
+                            'icon' => '🎫',
+                            'title' => 'Join an Event',
+                            'desc' => 'Book a slot in any adventure organized by a verified guide. Show up and complete the trip.',
+                            'color' => 'emerald',
+                            'badge' => 'Step 1',
+                        ],
+                        [
+                            'icon' => '🔓',
+                            'title' => 'Place Unlocked',
+                            'desc' => 'When the organizer marks the event as completed, every place in the itinerary gets automatically unlocked for you.',
+                            'color' => 'cyan',
+                            'badge' => 'Step 2',
+                        ],
+                        [
+                            'icon' => '⚡',
+                            'title' => 'Earn XP Instantly',
+                            'desc' => 'Each unlocked place awards XP based on its difficulty and category. The harder the trail, the bigger the reward.',
+                            'color' => 'indigo',
+                            'badge' => 'Step 3',
+                        ],
+                    ];
                 @endphp
-                @forelse($upcomingEvents as $event)
-                    <div class="card-hover rounded-2xl bg-white border border-gray-100 overflow-hidden shadow-sm">
-                        <div class="h-40 bg-gradient-to-br from-indigo-50 to-purple-50 flex items-center justify-center relative">
-                            <span class="text-5xl opacity-50">{{ $categoryIcons[$event->category->value] ?? '🎯' }}</span>
-                            @if($event->status->value === 'full')
-                                <div class="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-amber-100 text-xs font-bold text-amber-700">FULL</div>
-                            @endif
-                            <div class="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-white/90 backdrop-blur text-xs font-semibold text-gray-700">{{ $event->event_date->format('M d') }}</div>
-                        </div>
-                        <div class="p-5">
-                            <h3 class="text-lg font-bold text-gray-900 mb-1">{{ $event->title }}</h3>
-                            <p class="text-sm text-gray-500 mb-3 flex items-center gap-1">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
-                                {{ $event->place->name ?? 'TBA' }}
-                            </p>
-                            <div class="flex items-center justify-between">
-                                <div class="flex items-center gap-2">
-                                    <div class="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-xs font-bold text-emerald-700">{{ substr($event->organizer->name ?? 'O', 0, 1) }}</div>
-                                    <span class="text-xs text-gray-500">{{ $event->organizer->name ?? 'Organizer' }}</span>
-                                    @if($event->organizer->is_verified_organizer ?? false)
-                                        <svg class="w-3.5 h-3.5 text-cyan-500" fill="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                                    @endif
+                @foreach($unlockSteps as $i => $us)
+                    <div class="relative group">
+                        {{-- Connector line (between cards, desktop only) --}}
+                        @if($i < 2)
+                            <div class="hidden md:block absolute top-12 -right-3 w-6 h-0.5 bg-gradient-to-r from-{{ $us['color'] }}-300 to-{{ $unlockSteps[$i+1]['color'] }}-300 z-10"></div>
+                        @endif
+                        <div class="h-full bg-white rounded-2xl border border-gray-100 p-7 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group-hover:border-{{ $us['color'] }}-200">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-12 h-12 rounded-2xl bg-{{ $us['color'] }}-50 border border-{{ $us['color'] }}-100 flex items-center justify-center text-2xl shrink-0 float-animation" style="animation-delay: {{ $i * -2 }}s">
+                                    {{ $us['icon'] }}
                                 </div>
-                                <div class="text-right">
-                                    <div class="text-sm font-bold text-emerald-600">₱{{ number_format($event->fee, 0) }}</div>
-                                    <div class="text-xs text-gray-400">{{ $event->availableSlots() }}/{{ $event->max_slots }} slots</div>
+                                <span class="px-2.5 py-0.5 rounded-full bg-{{ $us['color'] }}-50 text-{{ $us['color'] }}-700 text-[10px] font-extrabold uppercase tracking-widest">{{ $us['badge'] }}</span>
+                            </div>
+                            <h3 class="text-lg font-extrabold text-gray-900 mb-2">{{ $us['title'] }}</h3>
+                            <p class="text-sm text-gray-500 leading-relaxed">{{ $us['desc'] }}</p>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            {{-- Visual unlock showcase with PH Map --}}
+            <div class="relative rounded-3xl overflow-hidden" style="background: linear-gradient(135deg, #059669 0%, #0891b2 50%, #6366f1 100%);">
+                <div class="absolute inset-0 opacity-5">
+                    <div class="absolute top-6 left-10 text-8xl">⛰️</div>
+                    <div class="absolute bottom-6 right-10 text-8xl">🏝️</div>
+                </div>
+
+                <div class="relative p-8 sm:p-12">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+                        {{-- Left: Stats & info --}}
+                        <div class="text-white">
+                            <h3 class="text-2xl sm:text-3xl font-extrabold tracking-tight mb-4">Your Personal Adventure Map</h3>
+                            <p class="text-white/70 text-sm leading-relaxed mb-8">Every place you unlock lights up on your map. Conquer mountains, beaches, and hidden gems across the Philippines — watch your map glow as you level up.</p>
+
+                            <div class="grid grid-cols-3 gap-4 mb-8">
+                                @php
+                                    $totalPlaces = \App\Models\Place::where('is_active', true)->count();
+                                    $totalUnlocks = \App\Models\PlaceUnlock::count();
+                                    $categoryCount = \App\Models\Place::where('is_active', true)->distinct('category')->count('category');
+                                @endphp
+                                <div class="text-center p-4 rounded-2xl bg-white/10 backdrop-blur">
+                                    <div class="text-2xl sm:text-3xl font-extrabold">{{ $totalPlaces }}</div>
+                                    <div class="text-[10px] font-semibold text-white/60 uppercase tracking-wider mt-1">Places</div>
+                                </div>
+                                <div class="text-center p-4 rounded-2xl bg-white/10 backdrop-blur">
+                                    <div class="text-2xl sm:text-3xl font-extrabold">{{ $totalUnlocks }}</div>
+                                    <div class="text-[10px] font-semibold text-white/60 uppercase tracking-wider mt-1">Unlocks</div>
+                                </div>
+                                <div class="text-center p-4 rounded-2xl bg-white/10 backdrop-blur">
+                                    <div class="text-2xl sm:text-3xl font-extrabold">{{ $categoryCount }}</div>
+                                    <div class="text-[10px] font-semibold text-white/60 uppercase tracking-wider mt-1">Categories</div>
                                 </div>
                             </div>
+
+                            {{-- Legend --}}
+                            <div class="flex items-center gap-5 mb-6">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-3 h-3 rounded-full bg-emerald-400 shadow-lg shadow-emerald-400/50"></span>
+                                    <span class="text-xs text-white/70 font-medium">Unlocked</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="w-3 h-3 rounded-full bg-white/20 border border-white/30"></span>
+                                    <span class="text-xs text-white/70 font-medium">Locked</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="w-3 h-3 rounded-full bg-amber-400 animate-pulse"></span>
+                                    <span class="text-xs text-white/70 font-medium">Popular</span>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-3">
+                                <div class="flex -space-x-2">
+                                    @for($i = 0; $i < 4; $i++)
+                                        <div class="w-8 h-8 rounded-full bg-white/20 border-2 border-white/30 flex items-center justify-center text-xs font-bold text-white">{{ ['🥾','🏔','🌊','⛺'][$i] }}</div>
+                                    @endfor
+                                </div>
+                                <span class="text-xs text-white/60 font-medium">Join {{ \App\Models\User::where('role', 'user')->count() }}+ explorers</span>
+                            </div>
                         </div>
+
+                        {{-- Right: Philippines Map with Leaflet --}}
+                        <div class="relative">
+                            <div id="ph-map" class="w-full rounded-2xl overflow-hidden border border-white/10 shadow-2xl" style="height: 420px;"></div>
+
+                            {{-- Floating tooltip cards --}}
+                            @php
+                                $mapPlaces = \App\Models\Place::where('is_active', true)
+                                    ->whereNotNull('latitude')->whereNotNull('longitude')
+                                    ->withCount('unlockedByUsers')
+                                    ->get();
+                                $topPlace = $mapPlaces->sortByDesc('unlocked_by_users_count')->first();
+                                $secondPlace = $mapPlaces->sortByDesc('unlocked_by_users_count')->skip(1)->first();
+                            @endphp
+                            @if($topPlace)
+                                <div class="absolute -top-3 -right-3 z-[1000] p-3 rounded-xl bg-white/15 backdrop-blur-md border border-white/20 shadow-xl max-w-[160px] map-float" style="animation-delay: -2s">
+                                    <div class="text-xs font-bold text-white truncate">🏆 {{ $topPlace->name }}</div>
+                                    <div class="text-[10px] text-white/60 mt-0.5">{{ $topPlace->unlocked_by_users_count }} explorers</div>
+                                </div>
+                            @endif
+                            @if($secondPlace)
+                                <div class="absolute -bottom-3 -left-3 z-[1000] p-3 rounded-xl bg-white/15 backdrop-blur-md border border-white/20 shadow-xl max-w-[160px] map-float" style="animation-delay: -4s">
+                                    <div class="text-xs font-bold text-white truncate">⚡ {{ $secondPlace->name }}</div>
+                                    <div class="text-[10px] text-white/60 mt-0.5">{{ $secondPlace->experience_points ?? 0 }} XP</div>
+                                </div>
+                            @endif
+                        </div>
+
+                        <script>
+                            document.addEventListener('DOMContentLoaded', function() {
+                                const map = L.map('ph-map', {
+                                    zoomControl: false,
+                                    attributionControl: false,
+                                    dragging: false,
+                                    scrollWheelZoom: false,
+                                    doubleClickZoom: false,
+                                    touchZoom: false,
+                                }).setView([12.0, 122.5], 5.5);
+
+                                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                                    maxZoom: 19,
+                                }).addTo(map);
+
+                                @php
+                                    $mapJson = $mapPlaces->map(function($p) {
+                                        return [
+                                            'name' => $p->name,
+                                            'lat' => (float)$p->latitude,
+                                            'lng' => (float)$p->longitude,
+                                            'category' => $p->category->value,
+                                            'xp' => $p->experience_points ?? 0,
+                                            'unlocks' => $p->unlocked_by_users_count,
+                                            'province' => $p->province ?? '',
+                                        ];
+                                    })->values();
+                                @endphp
+                                const places = @json($mapJson);
+
+                                const maxUnlocks = Math.max(...places.map(p => p.unlocks), 1);
+
+                                const categoryEmoji = {
+                                    'mountain':'⛰️','beach':'🏖️','island':'🏝️','falls':'💧',
+                                    'river':'🌊','lake':'🏞️','campsite':'⛺','historical':'🏛️',
+                                    'food_destination':'🍜','road_trip':'🚗','hidden_gem':'💎'
+                                };
+
+                                places.forEach((p, i) => {
+                                    const isPopular = p.unlocks >= maxUnlocks * 0.5;
+                                    const size = isPopular ? 40 : 30;
+                                    const color = isPopular ? '#fbbf24' : '#34d399';
+                                    const emoji = categoryEmoji[p.category] || '📍';
+
+                                    // Pulsing ring
+                                    const pulseIcon = L.divIcon({
+                                        className: '',
+                                        html: `
+                                            <div style="position:relative;width:${size}px;height:${size}px;">
+                                                <div style="position:absolute;inset:0;border-radius:50%;border:2px solid ${color};opacity:0.4;animation:map-ping 3s ease-in-out infinite;animation-delay:${i*0.2}s"></div>
+                                                <div style="position:absolute;inset:${(size-24)/2}px;width:24px;height:24px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 0 12px ${color}80;cursor:pointer;transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.3)'" onmouseout="this.style.transform='scale(1)'">${emoji}</div>
+                                            </div>
+                                        `,
+                                        iconSize: [size, size],
+                                        iconAnchor: [size/2, size/2],
+                                    });
+
+                                    L.marker([p.lat, p.lng], { icon: pulseIcon })
+                                        .addTo(map)
+                                        .bindPopup(`
+                                            <div style="font-family:'Plus Jakarta Sans',sans-serif;min-width:140px;">
+                                                <div style="font-size:13px;font-weight:800;margin-bottom:2px;">${emoji} ${p.name}</div>
+                                                <div style="font-size:11px;color:#6b7280;">${p.province}</div>
+                                                <div style="display:flex;gap:8px;margin-top:6px;font-size:11px;">
+                                                    <span style="color:#059669;font-weight:700;">🔓 ${p.unlocks}</span>
+                                                    <span style="color:#6366f1;font-weight:700;">⚡ ${p.xp} XP</span>
+                                                </div>
+                                            </div>
+                                        `, { className: 'map-popup' });
+                                });
+                            });
+                        </script>
                     </div>
-                @empty
-                    <div class="col-span-full text-center py-12">
-                        <span class="text-5xl mb-4 block">🏕️</span>
-                        <p class="text-gray-500">No upcoming events yet. Check back soon!</p>
-                    </div>
-                @endforelse
+                </div>
             </div>
         </div>
     </section>
+
 
     <!-- XP & Leveling System -->
     <section id="xp" class="py-20 bg-gradient-to-b from-white to-gray-50">
@@ -562,10 +953,7 @@
                 <div>
                     <h4 class="text-sm font-semibold text-white mb-4">Platform</h4>
                     <ul class="space-y-2 text-sm">
-                        <li><a href="{{ route('login') }}" class="hover:text-emerald-400 transition-colors">Organizer Login</a></li>
-                        @if(Route::has('register'))
-                            <li><a href="{{ route('register') }}" class="hover:text-emerald-400 transition-colors">Become an Organizer</a></li>
-                        @endif
+                        <li><a href="{{ route('login') }}" class="hover:text-emerald-400 transition-colors">Organizer Portal</a></li>
                         <li><a href="#download" class="hover:text-emerald-400 transition-colors">Download App</a></li>
                     </ul>
                 </div>

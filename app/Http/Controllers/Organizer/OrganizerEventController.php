@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Organizer;
 use App\Enums\PlaceCategory;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
+use App\Models\EventPlace;
+use App\Models\EventRule;
 use App\Models\Place;
 use App\Services\EventService;
 use Illuminate\Http\RedirectResponse;
@@ -51,18 +53,75 @@ class OrganizerEventController extends Controller
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'unique:events,slug'],
-            'place_id' => ['required', 'exists:places,id'],
-            'category' => ['required', new Enum(PlaceCategory::class)],
+            'place_id' => ['nullable', 'exists:places,id'],
+            'category' => ['nullable', 'string'],
             'event_date' => ['required', 'date', 'after:today'],
+            'end_date' => ['nullable', 'date', 'after_or_equal:event_date'],
             'description' => ['nullable', 'string'],
             'meeting_place' => ['nullable', 'string', 'max:255'],
+            'meeting_time' => ['nullable', 'string', 'max:50'],
             'fee' => ['nullable', 'numeric', 'min:0'],
             'max_slots' => ['required', 'integer', 'min:1'],
-            'requirements' => ['nullable', 'array'],
             'auto_approve_bookings' => ['nullable', 'boolean'],
+            'difficulty' => ['nullable', 'string', 'in:easy,moderate,hard,extreme'],
+            // Itinerary
+            'itinerary_place_ids' => ['nullable', 'array'],
+            'itinerary_days' => ['nullable', 'array'],
+            'itinerary_activities' => ['nullable', 'array'],
+            'itinerary_times' => ['nullable', 'array'],
+            'itinerary_notes' => ['nullable', 'array'],
+            // Rules & Instructions
+            'rule_types' => ['nullable', 'array'],
+            'rule_contents' => ['nullable', 'array'],
         ]);
 
-        $this->eventService->create($request->user(), $validated);
+        $event = $this->eventService->create($request->user(), $validated);
+
+        // Set place_id and category from first itinerary item if not provided
+        $firstPlaceId = collect($request->input('itinerary_place_ids', []))->first();
+        if (!$event->place_id && $firstPlaceId) {
+            $firstPlace = Place::find($firstPlaceId);
+            if ($firstPlace) {
+                $event->update([
+                    'place_id' => $firstPlace->id,
+                    'category' => $firstPlace->category,
+                ]);
+            }
+        }
+
+        // Save itinerary
+        if ($request->has('itinerary_place_ids')) {
+            foreach ($request->input('itinerary_place_ids', []) as $i => $placeId) {
+                $customName = $request->input("itinerary_custom_names.{$i}");
+                if (!$placeId && !$customName) continue;
+
+                EventPlace::create([
+                    'event_id' => $event->id,
+                    'place_id' => $placeId ?: null,
+                    'custom_place_name' => $placeId ? null : $customName,
+                    'custom_place_location' => $placeId ? null : $request->input("itinerary_custom_locations.{$i}"),
+                    'day_number' => $request->input("itinerary_days.{$i}", 1),
+                    'sort_order' => $i + 1,
+                    'activity' => $request->input("itinerary_activities.{$i}"),
+                    'time_slot' => $request->input("itinerary_times.{$i}"),
+                    'notes' => $request->input("itinerary_notes.{$i}"),
+                ]);
+            }
+        }
+
+        // Save rules & instructions
+        if ($request->has('rule_types')) {
+            foreach ($request->input('rule_types', []) as $i => $type) {
+                $content = $request->input("rule_contents.{$i}");
+                if (!$type || !$content) continue;
+                EventRule::create([
+                    'event_id' => $event->id,
+                    'rule_type' => $type,
+                    'content' => $content,
+                    'sort_order' => $i + 1,
+                ]);
+            }
+        }
 
         return redirect()->route('organizer.events.index')
             ->with('success', 'Event created successfully.');
@@ -75,7 +134,7 @@ class OrganizerEventController extends Controller
     {
         $this->authorizeOrganizer($event);
 
-        $event->load(['place', 'bookings.user']);
+        $event->load(['place', 'bookings.user', 'itinerary.place', 'rules']);
 
         return view('organizer.events.show', compact('event'));
     }
@@ -87,37 +146,134 @@ class OrganizerEventController extends Controller
     {
         $this->authorizeOrganizer($event);
 
-        $places = Place::where('is_active', true)->orderBy('name')->get();
-        $categories = PlaceCategory::cases();
+        // Only draft events can be edited
+        if ($event->status !== \App\Enums\EventStatus::Draft) {
+            return redirect()->route('organizer.events.show', $event)
+                ->with('error', 'Only draft events can be edited.');
+        }
 
-        return view('organizer.events.edit', compact('event', 'places', 'categories'));
+        $places = Place::where('is_active', true)->orderBy('name')->get();
+        $event->load(['itinerary.place', 'rules']);
+
+        $itineraryData = $event->itinerary->map(function ($s) {
+            return [
+                'place_id' => $s->place_id,
+                'custom_name' => $s->custom_place_name,
+                'custom_location' => $s->custom_place_location,
+                'day' => $s->day_number,
+                'time' => $s->time_slot,
+                'activity' => $s->activity,
+                'notes' => $s->notes,
+            ];
+        });
+
+        $rulesData = $event->rules->map(function ($r) {
+            return ['type' => $r->rule_type, 'content' => $r->content];
+        });
+
+        return view('organizer.events.edit', compact('event', 'places', 'itineraryData', 'rulesData'));
     }
 
     /**
-     * Update the specified event.
+     * Update the specified event (draft only).
      */
     public function update(Request $request, Event $event): RedirectResponse
     {
         $this->authorizeOrganizer($event);
 
+        if ($event->status !== \App\Enums\EventStatus::Draft) {
+            return redirect()->route('organizer.events.show', $event)
+                ->with('error', 'Only draft events can be edited.');
+        }
+
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'slug' => ['required', 'string', 'max:255', 'unique:events,slug,' . $event->id],
-            'place_id' => ['required', 'exists:places,id'],
-            'category' => ['required', new Enum(PlaceCategory::class)],
-            'event_date' => ['required', 'date', 'after:today'],
+            'place_id' => ['nullable', 'exists:places,id'],
+            'category' => ['nullable', 'string'],
+            'event_date' => ['required', 'date', 'after_or_equal:today'],
+            'end_date' => ['nullable', 'date', 'after_or_equal:event_date'],
             'description' => ['nullable', 'string'],
             'meeting_place' => ['nullable', 'string', 'max:255'],
+            'meeting_time' => ['nullable', 'string', 'max:50'],
             'fee' => ['nullable', 'numeric', 'min:0'],
             'max_slots' => ['required', 'integer', 'min:1'],
-            'requirements' => ['nullable', 'array'],
             'auto_approve_bookings' => ['nullable', 'boolean'],
+            'difficulty' => ['nullable', 'string'],
+            'itinerary_place_ids' => ['nullable', 'array'],
+            'itinerary_custom_names' => ['nullable', 'array'],
+            'itinerary_custom_locations' => ['nullable', 'array'],
+            'itinerary_days' => ['nullable', 'array'],
+            'itinerary_activities' => ['nullable', 'array'],
+            'itinerary_times' => ['nullable', 'array'],
+            'itinerary_notes' => ['nullable', 'array'],
+            'rule_types' => ['nullable', 'array'],
+            'rule_contents' => ['nullable', 'array'],
         ]);
+
+        unset($validated['itinerary_place_ids'], $validated['itinerary_custom_names'], $validated['itinerary_custom_locations'],
+              $validated['itinerary_days'], $validated['itinerary_activities'], $validated['itinerary_times'], $validated['itinerary_notes'],
+              $validated['rule_types'], $validated['rule_contents']);
 
         $this->eventService->update($event, $validated);
 
-        return redirect()->route('organizer.events.index')
+        // Replace itinerary
+        $event->itinerary()->delete();
+        if ($request->has('itinerary_place_ids')) {
+            foreach ($request->input('itinerary_place_ids', []) as $i => $placeId) {
+                $customName = $request->input("itinerary_custom_names.{$i}");
+                if (!$placeId && !$customName) continue;
+                EventPlace::create([
+                    'event_id' => $event->id,
+                    'place_id' => $placeId ?: null,
+                    'custom_place_name' => $placeId ? null : $customName,
+                    'custom_place_location' => $placeId ? null : $request->input("itinerary_custom_locations.{$i}"),
+                    'day_number' => $request->input("itinerary_days.{$i}", 1),
+                    'sort_order' => $i + 1,
+                    'activity' => $request->input("itinerary_activities.{$i}"),
+                    'time_slot' => $request->input("itinerary_times.{$i}"),
+                    'notes' => $request->input("itinerary_notes.{$i}"),
+                ]);
+            }
+        }
+
+        // Set place_id from first itinerary item
+        $firstPlaceId = collect($request->input('itinerary_place_ids', []))->first();
+        if ($firstPlaceId) {
+            $firstPlace = Place::find($firstPlaceId);
+            if ($firstPlace) {
+                $event->update(['place_id' => $firstPlace->id, 'category' => $firstPlace->category]);
+            }
+        }
+
+        // Replace rules
+        $event->rules()->delete();
+        if ($request->has('rule_types')) {
+            foreach ($request->input('rule_types', []) as $i => $type) {
+                $content = $request->input("rule_contents.{$i}");
+                if (!$type || !$content) continue;
+                EventRule::create([
+                    'event_id' => $event->id,
+                    'rule_type' => $type,
+                    'content' => $content,
+                    'sort_order' => $i + 1,
+                ]);
+            }
+        }
+
+        return redirect()->route('organizer.events.show', $event)
             ->with('success', 'Event updated successfully.');
+    }
+
+    /**
+     * Cancel an event.
+     */
+    public function cancel(Request $request, Event $event): RedirectResponse
+    {
+        $this->eventService->cancel($request->user(), $event);
+
+        return redirect()->route('organizer.events.index')
+            ->with('success', 'Event cancelled.');
     }
 
     /**

@@ -42,7 +42,7 @@ class AdminRewardController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            $validated['image_path'] = Storage::disk('s3')->putFile('reward-images', $request->file('image'), 'public');
+            $validated['image_path'] = Storage::disk()->putFile('reward-images', $request->file('image'));
         }
 
         unset($validated['image']);
@@ -72,7 +72,7 @@ class AdminRewardController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            $validated['image_path'] = Storage::disk('s3')->putFile('reward-images', $request->file('image'), 'public');
+            $validated['image_path'] = Storage::disk()->putFile('reward-images', $request->file('image'));
         }
 
         unset($validated['image']);

@@ -25,6 +25,8 @@ class Place extends Model
         'cover_image_path',
         'category_fields',
         'is_active',
+        'xp_reward',
+        'points_reward',
         'created_by',
     ];
 
@@ -42,6 +44,33 @@ class Place extends Model
     public function events(): HasMany
     {
         return $this->hasMany(Event::class);
+    }
+
+    public function meta(): HasMany
+    {
+        return $this->hasMany(PlaceMeta::class);
+    }
+
+    public function getMeta(string $key, $default = null): ?string
+    {
+        return $this->meta->firstWhere('meta_key', $key)?->meta_value ?? $default;
+    }
+
+    public function setMeta(string $key, ?string $value): void
+    {
+        PlaceMeta::updateOrCreate(
+            ['place_id' => $this->id, 'meta_key' => $key],
+            ['meta_value' => $value]
+        );
+    }
+
+    public function syncMeta(array $metaData): void
+    {
+        foreach ($metaData as $key => $value) {
+            if ($value !== null && $value !== '') {
+                $this->setMeta($key, $value);
+            }
+        }
     }
 
     public function unlockedByUsers(): BelongsToMany

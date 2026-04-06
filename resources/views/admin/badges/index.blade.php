@@ -1,4 +1,4 @@
-<x-layouts.app>
+<x-layouts.admin>
     <div class="space-y-6">
         <div class="flex items-center justify-between">
             <flux:heading size="xl">Badges</flux:heading>
@@ -67,4 +67,4 @@
             {{ $badges->links() }}
         </div>
     </div>
-</x-layouts.app>
+</x-layouts.admin>

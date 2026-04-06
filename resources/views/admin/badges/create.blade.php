@@ -1,4 +1,4 @@
-<x-layouts.app>
+<x-layouts.admin>
     <div class="max-w-3xl space-y-6">
         <flux:heading size="xl">Create Badge</flux:heading>
 
@@ -91,7 +91,9 @@
 
             <flux:field>
                 <flux:label>Icon</flux:label>
-                <flux:input type="file" name="icon" accept="image/*" />
+                <input type="file" name="icon" accept="image/*" data-preview="preview-icon"
+                    class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer" />
+                <img id="preview-icon" class="hidden mt-2 h-16 w-16 rounded-lg object-cover" alt="Preview" />
                 <flux:error name="icon" />
             </flux:field>
 
@@ -120,4 +122,4 @@
             </div>
         </form>
     </div>
-</x-layouts.app>
+</x-layouts.admin>

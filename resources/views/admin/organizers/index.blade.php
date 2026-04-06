@@ -1,4 +1,4 @@
-<x-layouts.app>
+<x-layouts.admin>
     <div class="space-y-6">
         <flux:heading size="xl">Organizers</flux:heading>
 
@@ -62,4 +62,4 @@
             {{ $organizers->links() }}
         </div>
     </div>
-</x-layouts.app>
+</x-layouts.admin>

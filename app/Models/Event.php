@@ -23,9 +23,12 @@ class Event extends Model
         'description',
         'category',
         'event_date',
+        'end_date',
         'meeting_place',
+        'meeting_time',
         'fee',
         'max_slots',
+        'difficulty',
         'requirements',
         'status',
         'auto_approve_bookings',
@@ -37,6 +40,7 @@ class Event extends Model
             'category' => PlaceCategory::class,
             'status' => EventStatus::class,
             'event_date' => 'date',
+            'end_date' => 'date',
             'fee' => 'decimal:2',
             'requirements' => 'array',
             'auto_approve_bookings' => 'boolean',
@@ -56,6 +60,16 @@ class Event extends Model
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
+    }
+
+    public function itinerary(): HasMany
+    {
+        return $this->hasMany(EventPlace::class)->orderBy('day_number')->orderBy('sort_order');
+    }
+
+    public function rules(): HasMany
+    {
+        return $this->hasMany(EventRule::class)->orderBy('sort_order');
     }
 
     public function badges(): BelongsToMany

@@ -38,7 +38,15 @@
             </div>
             <flux:field>
                 <flux:label>Image</flux:label>
-                <flux:input type="file" name="image" accept="image/*" />
+                @if($reward->image_path)
+                    <div class="mb-2">
+                        <img src="{{ Storage::disk()->url($reward->image_path) }}" alt="Current image" class="h-24 w-auto rounded-lg object-cover" />
+                        <p class="mt-1 text-xs text-zinc-400">Current image</p>
+                    </div>
+                @endif
+                <input type="file" name="image" accept="image/*" data-preview="preview-image"
+                    class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer" />
+                <img id="preview-image" class="hidden mt-2 h-24 w-auto rounded-lg object-cover" alt="Preview" />
             </flux:field>
             <div class="flex gap-3">
                 <flux:button type="submit" variant="primary">Update Reward</flux:button>

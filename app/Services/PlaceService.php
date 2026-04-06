@@ -68,4 +68,14 @@ class PlaceService
 
         return $place->refresh();
     }
+
+    /**
+     * Activate a place.
+     */
+    public function activate(Place $place): Place
+    {
+        $place->update(['is_active' => true]);
+
+        return $place->refresh();
+    }
 }

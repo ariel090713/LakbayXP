@@ -39,7 +39,7 @@ class EventService
     }
 
     /**
-     * Publish an event (draft → published).
+     * Submit event for review (draft → pending_review).
      */
     public function publish(User $organizer, Event $event): Event
     {
@@ -48,7 +48,21 @@ class EventService
         }
 
         if ($event->status !== EventStatus::Draft) {
-            throw new \InvalidArgumentException('Only draft events can be published.');
+            throw new \InvalidArgumentException('Only draft events can be submitted for review.');
+        }
+
+        $event->update(['status' => EventStatus::PendingReview]);
+
+        return $event->refresh();
+    }
+
+    /**
+     * Admin approves event (pending_review → published).
+     */
+    public function approveEvent(Event $event): Event
+    {
+        if ($event->status !== EventStatus::PendingReview) {
+            throw new \InvalidArgumentException('Only pending events can be approved.');
         }
 
         $event->update(['status' => EventStatus::Published]);

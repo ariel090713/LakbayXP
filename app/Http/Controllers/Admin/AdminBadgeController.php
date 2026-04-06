@@ -41,7 +41,7 @@ class AdminBadgeController extends Controller
         ]);
 
         if ($request->hasFile('icon')) {
-            $validated['icon_path'] = Storage::disk('s3')->putFile('badge-icons', $request->file('icon'), 'public');
+            $validated['icon_path'] = Storage::disk()->putFile('badge-icons', $request->file('icon'));
         }
 
         unset($validated['icon']);
@@ -77,7 +77,7 @@ class AdminBadgeController extends Controller
         ]);
 
         if ($request->hasFile('icon')) {
-            $validated['icon_path'] = Storage::disk('s3')->putFile('badge-icons', $request->file('icon'), 'public');
+            $validated['icon_path'] = Storage::disk()->putFile('badge-icons', $request->file('icon'));
         }
 
         unset($validated['icon']);

@@ -23,11 +23,49 @@ class AdminPlaceController extends Controller
      */
     public function index(Request $request): View
     {
-        $places = Place::query()
-            ->orderBy('created_at', 'desc')
-            ->paginate(15);
+        $query = Place::query();
 
-        return view('admin.places.index', compact('places'));
+        // Search
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('slug', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhere('province', 'like', "%{$search}%")
+                  ->orWhere('region', 'like', "%{$search}%");
+            });
+        }
+
+        // Filter by category
+        if ($request->filled('category')) {
+            $query->where('category', $request->input('category'));
+        }
+
+        // Filter by region
+        if ($request->filled('region')) {
+            $query->where('region', $request->input('region'));
+        }
+
+        // Filter by province
+        if ($request->filled('province')) {
+            $query->where('province', $request->input('province'));
+        }
+
+        // Filter by status — default to active only
+        if ($request->filled('status')) {
+            $query->where('is_active', $request->input('status') === 'active');
+        } else {
+            $query->where('is_active', true);
+        }
+
+        $places = $query->orderBy('created_at', 'desc')->paginate(15)->withQueryString();
+
+        // Get predefined regions and provinces for filter dropdowns
+        $regions = \DB::table('regions')->orderBy('sort_order')->pluck('name');
+        $provinces = Place::whereNotNull('province')->distinct()->pluck('province')->sort();
+
+        return view('admin.places.index', compact('places', 'regions', 'provinces'));
     }
 
     /**
@@ -36,8 +74,11 @@ class AdminPlaceController extends Controller
     public function create(): View
     {
         $categories = PlaceCategory::cases();
+        $allCategoryFields = config('place_fields', []);
+        $regions = \DB::table('regions')->orderBy('sort_order')->get();
+        $provinces = \DB::table('provinces')->orderBy('sort_order')->get()->groupBy('region_id');
 
-        return view('admin.places.create', compact('categories'));
+        return view('admin.places.create', compact('categories', 'allCategoryFields', 'regions', 'provinces'));
     }
 
     /**
@@ -56,16 +97,36 @@ class AdminPlaceController extends Controller
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'cover_image' => ['nullable', 'image', 'max:5120'],
             'category_fields' => ['nullable', 'array'],
+            'xp_reward' => ['nullable', 'integer', 'min:0'],
+            'meta' => ['nullable', 'array'],
+            'custom_meta_keys' => ['nullable', 'array'],
+            'custom_meta_values' => ['nullable', 'array'],
         ]);
 
         if ($request->hasFile('cover_image')) {
-            $validated['cover_image_path'] = Storage::disk('s3')->putFile('place-covers', $request->file('cover_image'), 'public');
+            $validated['cover_image_path'] = Storage::disk()->putFile('place-covers', $request->file('cover_image'));
         }
 
-        unset($validated['cover_image']);
+        unset($validated['cover_image'], $validated['meta'], $validated['custom_meta_keys'], $validated['custom_meta_values']);
         $validated['created_by'] = $request->user()->id;
 
-        $this->placeService->create($validated);
+        $place = $this->placeService->create($validated);
+
+        // Save category-specific meta
+        if ($request->has('meta')) {
+            $place->syncMeta(array_filter($request->input('meta'), fn($v) => $v !== null && $v !== ''));
+        }
+
+        // Save custom meta
+        if ($request->has('custom_meta_keys')) {
+            $keys = $request->input('custom_meta_keys', []);
+            $values = $request->input('custom_meta_values', []);
+            foreach ($keys as $i => $key) {
+                if ($key && isset($values[$i]) && $values[$i] !== '') {
+                    $place->setMeta($key, $values[$i]);
+                }
+            }
+        }
 
         return redirect()->route('admin.places.index')
             ->with('success', 'Place created successfully.');
@@ -77,8 +138,12 @@ class AdminPlaceController extends Controller
     public function edit(Place $place): View
     {
         $categories = PlaceCategory::cases();
+        $place->load('meta');
+        $categoryFields = config('place_fields.' . $place->category->value, []);
+        $regions = \DB::table('regions')->orderBy('sort_order')->get();
+        $provinces = \DB::table('provinces')->orderBy('sort_order')->get()->groupBy('region_id');
 
-        return view('admin.places.edit', compact('place', 'categories'));
+        return view('admin.places.edit', compact('place', 'categories', 'categoryFields', 'regions', 'provinces'));
     }
 
     /**
@@ -97,15 +162,35 @@ class AdminPlaceController extends Controller
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'cover_image' => ['nullable', 'image', 'max:5120'],
             'category_fields' => ['nullable', 'array'],
+            'xp_reward' => ['nullable', 'integer', 'min:0'],
+            'meta' => ['nullable', 'array'],
+            'custom_meta_keys' => ['nullable', 'array'],
+            'custom_meta_values' => ['nullable', 'array'],
         ]);
 
         if ($request->hasFile('cover_image')) {
-            $validated['cover_image_path'] = Storage::disk('s3')->putFile('place-covers', $request->file('cover_image'), 'public');
+            $validated['cover_image_path'] = Storage::disk()->putFile('place-covers', $request->file('cover_image'));
         }
 
-        unset($validated['cover_image']);
+        unset($validated['cover_image'], $validated['meta'], $validated['custom_meta_keys'], $validated['custom_meta_values']);
 
         $this->placeService->update($place, $validated);
+
+        // Save category-specific meta
+        if ($request->has('meta')) {
+            $place->syncMeta(array_filter($request->input('meta'), fn($v) => $v !== null && $v !== ''));
+        }
+
+        // Save custom meta
+        if ($request->has('custom_meta_keys')) {
+            $keys = $request->input('custom_meta_keys', []);
+            $values = $request->input('custom_meta_values', []);
+            foreach ($keys as $i => $key) {
+                if ($key && isset($values[$i]) && $values[$i] !== '') {
+                    $place->setMeta($key, $values[$i]);
+                }
+            }
+        }
 
         return redirect()->route('admin.places.index')
             ->with('success', 'Place updated successfully.');
@@ -120,5 +205,16 @@ class AdminPlaceController extends Controller
 
         return redirect()->route('admin.places.index')
             ->with('success', 'Place deactivated successfully.');
+    }
+
+    /**
+     * Activate a place.
+     */
+    public function activate(Place $place): RedirectResponse
+    {
+        $this->placeService->activate($place);
+
+        return redirect()->route('admin.places.index')
+            ->with('success', 'Place activated successfully.');
     }
 }

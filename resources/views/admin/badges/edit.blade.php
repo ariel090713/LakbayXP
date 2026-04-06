@@ -1,4 +1,4 @@
-<x-layouts.app>
+<x-layouts.admin>
     <div class="max-w-3xl space-y-6">
         <flux:heading size="xl">Edit Badge: {{ $badge->name }}</flux:heading>
 
@@ -94,11 +94,13 @@
                 <flux:label>Icon</flux:label>
                 @if($badge->icon_path)
                     <div class="mb-2">
-                        <img src="{{ Storage::disk('s3')->url($badge->icon_path) }}" alt="Current icon" class="h-16 w-16 rounded-lg object-cover" />
+                        <img src="{{ Storage::disk()->url($badge->icon_path) }}" alt="Current icon" class="h-16 w-16 rounded-lg object-cover" />
                         <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Current icon</p>
                     </div>
                 @endif
-                <flux:input type="file" name="icon" accept="image/*" />
+                <input type="file" name="icon" accept="image/*" data-preview="preview-icon"
+                    class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer" />
+                <img id="preview-icon" class="hidden mt-2 h-16 w-16 rounded-lg object-cover" alt="Preview" />
                 <flux:error name="icon" />
             </flux:field>
 
@@ -115,4 +117,4 @@
             </div>
         </form>
     </div>
-</x-layouts.app>
+</x-layouts.admin>

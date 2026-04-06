@@ -47,13 +47,24 @@ class GoogleAuthController extends Controller
                     'avatar_path' => $googleUser->getAvatar(),
                     'role' => UserRole::Organizer,
                     'is_verified_organizer' => false,
+                    'email_verified_at' => now(), // Google accounts are pre-verified
                 ]);
+            }
+
+            // Ensure Google users always have verified email
+            if (!$user->hasVerifiedEmail()) {
+                $user->markEmailAsVerified();
             }
 
             Auth::login($user, true);
 
             if ($user->role === UserRole::Admin) {
                 return redirect()->route('admin.dashboard');
+            }
+
+            // Redirect to onboarding if not completed
+            if (!$user->onboarding_completed) {
+                return redirect()->route('organizer.onboarding');
             }
 
             return redirect()->route('organizer.dashboard');
