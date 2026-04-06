@@ -30,29 +30,47 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // Support Firebase credentials as: file path, JSON string, or base64-encoded JSON.
-        // This allows Laravel Cloud (env var only) to work without uploading files.
         $creds = env('FIREBASE_CREDENTIALS');
         if ($creds) {
             $trimmed = trim($creds);
+            $json = null;
 
-            // If it's JSON
+            // If it's a file path that exists, let kreait handle it
+            if (file_exists($trimmed)) {
+                return;
+            }
+
+            // If it starts with { it's raw JSON
             if (str_starts_with($trimmed, '{')) {
                 $json = $trimmed;
             }
-            // If it's base64 (not a file path, not JSON)
-            elseif (!str_contains($trimmed, '/') && !str_contains($trimmed, '.json')) {
+
+            // Otherwise try base64 decode
+            if (!$json) {
                 $decoded = base64_decode($trimmed, true);
                 if ($decoded && str_starts_with(trim($decoded), '{')) {
-                    $json = $decoded;
+                    $json = trim($decoded);
                 }
             }
 
-            if (isset($json)) {
-                $tempPath = storage_path('framework/firebase-credentials.json');
-                if (!file_exists($tempPath) || file_get_contents($tempPath) !== $json) {
+            if ($json) {
+                // Validate it's actually valid JSON
+                $parsed = json_decode($json, true);
+                if (json_last_error() === JSON_ERROR_NONE && isset($parsed['project_id'])) {
+                    $tempPath = storage_path('framework/firebase-credentials.json');
                     file_put_contents($tempPath, $json);
+                    config(['firebase.projects.app.credentials' => $tempPath]);
+                } else {
+                    \Log::error('Firebase credentials: decoded but invalid JSON', [
+                        'json_error' => json_last_error_msg(),
+                        'starts_with' => substr($json, 0, 50),
+                    ]);
                 }
-                config(['firebase.projects.app.credentials' => $tempPath]);
+            } else {
+                \Log::error('Firebase credentials: could not decode', [
+                    'length' => strlen($trimmed),
+                    'starts_with' => substr($trimmed, 0, 20),
+                ]);
             }
         }
     }
