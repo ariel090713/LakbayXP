@@ -91,26 +91,26 @@ class ProfileController extends Controller
     /**
      * List a user's unlocked places.
      */
-    public function unlocks(User $user): JsonResponse
+    public function unlocks(Request $request, User $user): JsonResponse
     {
         $unlocks = $user->unlockedPlaces()
             ->withPivot('created_at', 'unlock_method')
             ->orderByPivot('created_at', 'desc')
-            ->get();
+            ->paginate($request->input('per_page', 15));
 
-        return response()->json(['data' => $unlocks]);
+        return response()->json($unlocks);
     }
 
     /**
      * List a user's earned badges.
      */
-    public function badges(User $user): JsonResponse
+    public function badges(Request $request, User $user): JsonResponse
     {
         $badges = $user->badges()
             ->withPivot('awarded_at')
             ->orderByPivot('awarded_at', 'desc')
-            ->get();
+            ->paginate($request->input('per_page', 15));
 
-        return response()->json(['data' => $badges]);
+        return response()->json($badges);
     }
 }

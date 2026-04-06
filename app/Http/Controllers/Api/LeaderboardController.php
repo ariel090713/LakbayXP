@@ -5,26 +5,23 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class LeaderboardController extends Controller
 {
     /**
      * Return users ranked by total unlocked places descending.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         $users = User::query()
+            ->where('role', 'user')
+            ->where('xp', '>', 0)
             ->withCount(['unlockedPlaces', 'badges'])
-            ->orderByDesc('unlocked_places_count')
-            ->limit(100)
-            ->get()
-            ->map(fn (User $user) => [
-                'username' => $user->username,
-                'explorer_level' => $user->explorer_level,
-                'unlocked_places_count' => $user->unlocked_places_count,
-                'badge_count' => $user->badges_count,
-            ]);
+            ->orderByDesc('level')
+            ->orderByDesc('xp')
+            ->paginate($request->input('per_page', 20));
 
-        return response()->json(['data' => $users]);
+        return response()->json($users);
     }
 }

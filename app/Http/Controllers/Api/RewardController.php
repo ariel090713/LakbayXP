@@ -18,22 +18,13 @@ class RewardController extends Controller
     /**
      * List available rewards.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         $rewards = Reward::where('is_active', true)
             ->orderBy('points_cost')
-            ->get()
-            ->map(fn (Reward $reward) => [
-                'id' => $reward->id,
-                'name' => $reward->name,
-                'slug' => $reward->slug,
-                'description' => $reward->description,
-                'image_path' => $reward->image_path,
-                'points_cost' => $reward->points_cost,
-                'available_stock' => $reward->availableStock(),
-            ]);
+            ->paginate($request->input('per_page', 15));
 
-        return response()->json(['data' => $rewards]);
+        return response()->json($rewards);
     }
 
     /**
@@ -63,8 +54,8 @@ class RewardController extends Controller
             ->redemptions()
             ->with('reward')
             ->orderByDesc('created_at')
-            ->get();
+            ->paginate($request->input('per_page', 15));
 
-        return response()->json(['data' => $redemptions]);
+        return response()->json($redemptions);
     }
 }
