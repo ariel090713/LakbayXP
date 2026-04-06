@@ -1,0 +1,450 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Comment;
+use App\Models\Post;
+use App\Models\PostImage;
+use App\Models\Reaction;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+
+class CommunityController extends Controller
+{
+    /**
+     * Smart feed algorithm:
+     * - 40% from people you follow (chronological)
+     * - 30% trending (high engagement / recency ratio)
+     * - 20% random discovery (from people you don't follow)
+     * - 10% system posts (badge earned, place unlocked, event completed)
+     */
+    public function feed(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $perPage = $request->input('per_page', 15);
+        $page = $request->input('page', 1);
+        $followingIds = $user->following()->pluck('users.id')->toArray();
+
+        $baseQuery = Post::active()
+            ->with(['user:id,name,username,avatar_path,level', 'images', 'place:id,name,slug,category', 'event:id,title,slug', 'badge:id,name,slug,icon_path'])
+            ->withCount(['reactions', 'comments'])
+            ->withExists(['reactions as user_reacted' => function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            }]);
+
+        // Collect post IDs from each bucket
+        $followingPosts = collect();
+        $trendingPosts = collect();
+        $discoveryPosts = collect();
+        $systemPosts = collect();
+
+        $limit = $perPage;
+
+        // 1. Following posts (40%)
+        if (!empty($followingIds)) {
+            $followingPosts = (clone $baseQuery)
+                ->whereIn('user_id', $followingIds)
+                ->orderByDesc('created_at')
+                ->take((int) ceil($limit * 0.4))
+                ->pluck('id');
+        }
+
+        // 2. Trending posts (30%) — most engagement in last 7 days
+        $trendingPosts = Post::active()
+            ->where('created_at', '>=', now()->subDays(7))
+            ->whereNotIn('id', $followingPosts)
+            ->select('id')
+            ->withCount(['reactions', 'comments'])
+            ->get()
+            ->sortByDesc(function ($p) {
+                $hours = max(1, now()->diffInHours($p->created_at));
+                return (($p->reactions_count * 2) + ($p->comments_count * 3)) / pow($hours, 1.5);
+            })
+            ->take((int) ceil($limit * 0.3))
+            ->pluck('id');
+
+        // 3. Discovery posts (20%) — random from non-followed users
+        $excludeIds = $followingPosts->merge($trendingPosts);
+        $discoveryPosts = Post::active()
+            ->whereNotIn('user_id', array_merge($followingIds, [$user->id]))
+            ->whereNotIn('id', $excludeIds)
+            ->where('created_at', '>=', now()->subDays(30))
+            ->inRandomOrder()
+            ->take((int) ceil($limit * 0.2))
+            ->pluck('id');
+
+        // 4. System posts (10%) — auto-generated achievement posts
+        $allExclude = $excludeIds->merge($discoveryPosts);
+        $systemPosts = Post::active()
+            ->whereIn('type', ['place_unlock', 'badge_earned', 'event_completed'])
+            ->whereNotIn('id', $allExclude)
+            ->orderByDesc('created_at')
+            ->take((int) ceil($limit * 0.1))
+            ->pluck('id');
+
+        // Merge all IDs and fetch full posts
+        $allIds = $followingPosts
+            ->merge($trendingPosts)
+            ->merge($discoveryPosts)
+            ->merge($systemPosts)
+            ->unique();
+
+        // If not enough posts, fill with recent
+        if ($allIds->count() < $limit) {
+            $filler = Post::active()
+                ->whereNotIn('id', $allIds)
+                ->orderByDesc('created_at')
+                ->take($limit - $allIds->count())
+                ->pluck('id');
+            $allIds = $allIds->merge($filler);
+        }
+
+        $posts = $baseQuery
+            ->whereIn('id', $allIds)
+            ->orderByDesc('created_at')
+            ->paginate($perPage);
+
+        // Add user's reaction type to each post
+        $userReactions = Reaction::where('user_id', $user->id)
+            ->whereIn('post_id', $posts->pluck('id'))
+            ->pluck('type', 'post_id');
+
+        $posts->getCollection()->transform(function ($post) use ($userReactions) {
+            $post->user_reaction = $userReactions[$post->id] ?? null;
+            return $post;
+        });
+
+        return response()->json($posts);
+    }
+
+    /**
+     * Create a post (text or photo).
+     */
+    public function createPost(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'content' => ['required', 'string', 'max:2000'],
+            'type' => ['nullable', 'in:text,photo'],
+            'place_id' => ['nullable', 'exists:places,id'],
+            'event_id' => ['nullable', 'exists:events,id'],
+            'images' => ['nullable', 'array', 'max:5'],
+            'images.*' => ['image', 'max:10240'],
+        ]);
+
+        $post = Post::create([
+            'user_id' => $request->user()->id,
+            'content' => $validated['content'],
+            'type' => $request->hasFile('images') ? 'photo' : ($validated['type'] ?? 'text'),
+            'place_id' => $validated['place_id'] ?? null,
+            'event_id' => $validated['event_id'] ?? null,
+        ]);
+
+        // Upload images
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $i => $image) {
+                $path = Storage::disk()->putFile('posts', $image);
+                if ($path) {
+                    PostImage::create([
+                        'post_id' => $post->id,
+                        'image_path' => $path,
+                        'sort_order' => $i,
+                    ]);
+                }
+            }
+        }
+
+        $post->load(['user:id,name,username,avatar_path,level', 'images']);
+        $post->loadCount(['reactions', 'comments']);
+
+        return response()->json(['data' => $post], 201);
+    }
+
+    /**
+     * Get a single post with comments.
+     */
+    public function showPost(Post $post): JsonResponse
+    {
+        $post->load([
+            'user:id,name,username,avatar_path,level',
+            'images',
+            'place:id,name,slug,category',
+            'event:id,title,slug',
+            'badge:id,name,slug,icon_path',
+            'comments' => function ($q) {
+                $q->whereNull('parent_id')
+                    ->with(['user:id,name,username,avatar_path', 'replies.user:id,name,username,avatar_path'])
+                    ->orderByDesc('created_at')
+                    ->take(20);
+            },
+        ]);
+        $post->loadCount(['reactions', 'comments']);
+
+        return response()->json(['data' => $post]);
+    }
+
+    /**
+     * Delete own post.
+     */
+    public function deletePost(Request $request, Post $post): JsonResponse
+    {
+        if ($post->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+
+        $post->delete();
+        return response()->json(['message' => 'Post deleted.']);
+    }
+
+    /**
+     * Add a comment to a post.
+     */
+    public function addComment(Request $request, Post $post): JsonResponse
+    {
+        $validated = $request->validate([
+            'content' => ['required', 'string', 'max:1000'],
+            'parent_id' => ['nullable', 'exists:comments,id'],
+        ]);
+
+        $comment = Comment::create([
+            'post_id' => $post->id,
+            'user_id' => $request->user()->id,
+            'content' => $validated['content'],
+            'parent_id' => $validated['parent_id'] ?? null,
+        ]);
+
+        $comment->load('user:id,name,username,avatar_path');
+
+        return response()->json(['data' => $comment], 201);
+    }
+
+    /**
+     * Get comments for a post (paginated).
+     */
+    public function getComments(Request $request, Post $post): JsonResponse
+    {
+        $comments = $post->comments()
+            ->whereNull('parent_id')
+            ->with(['user:id,name,username,avatar_path', 'replies.user:id,name,username,avatar_path'])
+            ->orderByDesc('created_at')
+            ->paginate($request->input('per_page', 15));
+
+        return response()->json($comments);
+    }
+
+    /**
+     * Toggle reaction on a post (like/unlike or change type).
+     */
+    public function toggleReaction(Request $request, Post $post): JsonResponse
+    {
+        $validated = $request->validate([
+            'type' => ['nullable', 'in:like,love,fire,wow,congrats'],
+        ]);
+
+        $type = $validated['type'] ?? 'like';
+        $userId = $request->user()->id;
+
+        $existing = Reaction::where('post_id', $post->id)->where('user_id', $userId)->first();
+
+        if ($existing) {
+            if ($existing->type === $type) {
+                // Same type = remove reaction
+                $existing->delete();
+                return response()->json([
+                    'message' => 'Reaction removed.',
+                    'reacted' => false,
+                    'reactions_count' => $post->reactions()->count(),
+                ]);
+            }
+            // Different type = update
+            $existing->update(['type' => $type]);
+        } else {
+            Reaction::create([
+                'post_id' => $post->id,
+                'user_id' => $userId,
+                'type' => $type,
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Reacted.',
+            'reacted' => true,
+            'type' => $type,
+            'reactions_count' => $post->reactions()->count(),
+        ]);
+    }
+
+    /**
+     * Get a user's posts (for profile).
+     */
+    public function userPosts(Request $request, \App\Models\User $user): JsonResponse
+    {
+        $posts = Post::active()
+            ->where('user_id', $user->id)
+            ->with(['user:id,name,username,avatar_path,level', 'images', 'place:id,name,slug,category'])
+            ->withCount(['reactions', 'comments'])
+            ->orderByDesc('created_at')
+            ->paginate($request->input('per_page', 15));
+
+        return response()->json($posts);
+    }
+}
+
+    /**
+     * Suggested explorers algorithm:
+     * 1. Mutual follows (people your friends follow but you don't)
+     * 2. Same events (people who attended the same events as you)
+     * 3. Similar unlocks (people who unlocked similar places)
+     * 4. Top explorers (high level, active posters)
+     * 5. Random discovery (fill remaining slots)
+     * All exclude: yourself + people you already follow
+     */
+    public function suggestedExplorers(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $limit = $request->input('limit', 10);
+        $followingIds = $user->following()->pluck('users.id')->toArray();
+        $excludeIds = array_merge($followingIds, [$user->id]);
+
+        $suggestions = collect();
+
+        // 1. Mutual follows — people your friends follow (strongest signal)
+        if (!empty($followingIds)) {
+            $mutuals = DB::table('follows')
+                ->whereIn('follower_id', $followingIds)
+                ->whereNotIn('following_id', $excludeIds)
+                ->select('following_id', DB::raw('COUNT(*) as mutual_count'))
+                ->groupBy('following_id')
+                ->orderByDesc('mutual_count')
+                ->take(4)
+                ->pluck('following_id')
+                ->toArray();
+
+            if (!empty($mutuals)) {
+                $suggestions = $suggestions->merge(
+                    \App\Models\User::whereIn('id', $mutuals)
+                        ->where('role', 'user')
+                        ->withCount(['unlockedPlaces', 'badges', 'followers'])
+                        ->get()
+                        ->map(function ($u) { $u->suggestion_reason = 'mutual_friends'; return $u; })
+                );
+            }
+        }
+
+        // 2. Same events — people who booked the same events
+        $myEventIds = DB::table('bookings')
+            ->where('user_id', $user->id)
+            ->where('status', 'approved')
+            ->pluck('event_id');
+
+        if ($myEventIds->isNotEmpty()) {
+            $eventBuddies = DB::table('bookings')
+                ->whereIn('event_id', $myEventIds)
+                ->where('status', 'approved')
+                ->whereNotIn('user_id', $excludeIds)
+                ->whereNotIn('user_id', $suggestions->pluck('id'))
+                ->select('user_id', DB::raw('COUNT(*) as shared_events'))
+                ->groupBy('user_id')
+                ->orderByDesc('shared_events')
+                ->take(3)
+                ->pluck('user_id')
+                ->toArray();
+
+            if (!empty($eventBuddies)) {
+                $suggestions = $suggestions->merge(
+                    \App\Models\User::whereIn('id', $eventBuddies)
+                        ->where('role', 'user')
+                        ->withCount(['unlockedPlaces', 'badges', 'followers'])
+                        ->get()
+                        ->map(function ($u) { $u->suggestion_reason = 'same_events'; return $u; })
+                );
+            }
+        }
+
+        // 3. Similar unlocks — people who unlocked the same places
+        $myPlaceIds = $user->unlockedPlaces()->pluck('places.id');
+        if ($myPlaceIds->isNotEmpty()) {
+            $placemates = DB::table('place_unlocks')
+                ->whereIn('place_id', $myPlaceIds)
+                ->whereNotIn('user_id', $excludeIds)
+                ->whereNotIn('user_id', $suggestions->pluck('id'))
+                ->select('user_id', DB::raw('COUNT(*) as shared_places'))
+                ->groupBy('user_id')
+                ->orderByDesc('shared_places')
+                ->take(3)
+                ->pluck('user_id')
+                ->toArray();
+
+            if (!empty($placemates)) {
+                $suggestions = $suggestions->merge(
+                    \App\Models\User::whereIn('id', $placemates)
+                        ->where('role', 'user')
+                        ->withCount(['unlockedPlaces', 'badges', 'followers'])
+                        ->get()
+                        ->map(function ($u) { $u->suggestion_reason = 'similar_places'; return $u; })
+                );
+            }
+        }
+
+        // 4. Top explorers — highest level active users
+        if ($suggestions->count() < $limit) {
+            $topIds = \App\Models\User::where('role', 'user')
+                ->whereNotIn('id', $excludeIds)
+                ->whereNotIn('id', $suggestions->pluck('id'))
+                ->where('xp', '>', 0)
+                ->orderByDesc('level')
+                ->orderByDesc('xp')
+                ->take($limit - $suggestions->count())
+                ->pluck('id')
+                ->toArray();
+
+            if (!empty($topIds)) {
+                $suggestions = $suggestions->merge(
+                    \App\Models\User::whereIn('id', $topIds)
+                        ->withCount(['unlockedPlaces', 'badges', 'followers'])
+                        ->get()
+                        ->map(function ($u) { $u->suggestion_reason = 'top_explorer'; return $u; })
+                );
+            }
+        }
+
+        // 5. Random discovery — fill remaining
+        if ($suggestions->count() < $limit) {
+            $randomIds = \App\Models\User::where('role', 'user')
+                ->whereNotIn('id', $excludeIds)
+                ->whereNotIn('id', $suggestions->pluck('id'))
+                ->inRandomOrder()
+                ->take($limit - $suggestions->count())
+                ->pluck('id')
+                ->toArray();
+
+            if (!empty($randomIds)) {
+                $suggestions = $suggestions->merge(
+                    \App\Models\User::whereIn('id', $randomIds)
+                        ->withCount(['unlockedPlaces', 'badges', 'followers'])
+                        ->get()
+                        ->map(function ($u) { $u->suggestion_reason = 'discover'; return $u; })
+                );
+            }
+        }
+
+        // Format response
+        $result = $suggestions->take($limit)->map(function ($u) {
+            return [
+                'id' => $u->id,
+                'name' => $u->name,
+                'username' => $u->username,
+                'avatar_path' => $u->avatar_path,
+                'level' => $u->level ?? 1,
+                'xp' => $u->xp ?? 0,
+                'unlocked_places_count' => $u->unlocked_places_count ?? 0,
+                'badges_count' => $u->badges_count ?? 0,
+                'followers_count' => $u->followers_count ?? 0,
+                'suggestion_reason' => $u->suggestion_reason,
+            ];
+        })->values();
+
+        return response()->json(['data' => $result]);
+    }

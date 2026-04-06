@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\PlaceController;
 use App\Http\Controllers\Api\PlaceUnlockController;
 use App\Http\Controllers\Api\RewardController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\CommunityController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -164,4 +165,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/rewards', [RewardController::class, 'index']);
     Route::post('/rewards/{reward}/redeem', [RewardController::class, 'redeem']);
     Route::get('/my-redemptions', [RewardController::class, 'myRedemptions']);
+
+    // Community Feed
+    Route::get('/feed', [CommunityController::class, 'feed']);
+    Route::post('/posts', [CommunityController::class, 'createPost']);
+    Route::get('/posts/{post}', [CommunityController::class, 'showPost']);
+    Route::delete('/posts/{post}', [CommunityController::class, 'deletePost']);
+    Route::get('/posts/{post}/comments', [CommunityController::class, 'getComments']);
+    Route::post('/posts/{post}/comments', [CommunityController::class, 'addComment']);
+    Route::post('/posts/{post}/react', [CommunityController::class, 'toggleReaction']);
+    Route::get('/users/{user}/posts', [CommunityController::class, 'userPosts']);
+    Route::get('/suggested-explorers', [CommunityController::class, 'suggestedExplorers']);
 });
