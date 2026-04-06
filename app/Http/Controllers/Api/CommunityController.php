@@ -15,99 +15,35 @@ use Illuminate\Support\Facades\Storage;
 class CommunityController extends Controller
 {
     /**
-     * Smart feed algorithm:
-     * - 40% from people you follow (chronological)
-     * - 30% trending (high engagement / recency ratio)
-     * - 20% random discovery (from people you don't follow)
-     * - 10% system posts (badge earned, place unlocked, event completed)
+     * Smart feed: all active posts, ordered by a weighted score.
+     * Posts from people you follow get boosted. Trending posts get boosted.
+     * Fully paginated — returns ALL posts across pages.
      */
     public function feed(Request $request): JsonResponse
     {
         $user = $request->user();
         $perPage = $request->input('per_page', 15);
-        $page = $request->input('page', 1);
         $followingIds = $user->following()->pluck('users.id')->toArray();
 
-        $baseQuery = Post::active()
-            ->with(['user:id,name,username,avatar_path,level', 'images', 'place:id,name,slug,category', 'event:id,title,slug', 'badge:id,name,slug,icon_path'])
+        $posts = Post::active()
+            ->with([
+                'user:id,name,username,avatar_path,level',
+                'images',
+                'place:id,name,slug,category',
+                'event:id,title,slug',
+                'badge:id,name,slug,icon_path',
+            ])
             ->withCount(['reactions', 'comments'])
-            ->withExists(['reactions as user_reacted' => function ($q) use ($user) {
-                $q->where('user_id', $user->id);
-            }]);
-
-        // Collect post IDs from each bucket
-        $followingPosts = collect();
-        $trendingPosts = collect();
-        $discoveryPosts = collect();
-        $systemPosts = collect();
-
-        $limit = $perPage;
-
-        // 1. Following posts (40%)
-        if (!empty($followingIds)) {
-            $followingPosts = (clone $baseQuery)
-                ->whereIn('user_id', $followingIds)
-                ->orderByDesc('created_at')
-                ->take((int) ceil($limit * 0.4))
-                ->pluck('id');
-        }
-
-        // 2. Trending posts (30%) — most engagement in last 7 days
-        $trendingPosts = Post::active()
-            ->where('created_at', '>=', now()->subDays(7))
-            ->whereNotIn('id', $followingPosts)
-            ->select('id')
-            ->withCount(['reactions', 'comments'])
-            ->get()
-            ->sortByDesc(function ($p) {
-                $hours = max(1, now()->diffInHours($p->created_at));
-                return (($p->reactions_count * 2) + ($p->comments_count * 3)) / pow($hours, 1.5);
-            })
-            ->take((int) ceil($limit * 0.3))
-            ->pluck('id');
-
-        // 3. Discovery posts (20%) — random from non-followed users
-        $excludeIds = $followingPosts->merge($trendingPosts);
-        $discoveryPosts = Post::active()
-            ->whereNotIn('user_id', array_merge($followingIds, [$user->id]))
-            ->whereNotIn('id', $excludeIds)
-            ->where('created_at', '>=', now()->subDays(30))
-            ->inRandomOrder()
-            ->take((int) ceil($limit * 0.2))
-            ->pluck('id');
-
-        // 4. System posts (10%) — auto-generated achievement posts
-        $allExclude = $excludeIds->merge($discoveryPosts);
-        $systemPosts = Post::active()
-            ->whereIn('type', ['place_unlock', 'badge_earned', 'event_completed'])
-            ->whereNotIn('id', $allExclude)
-            ->orderByDesc('created_at')
-            ->take((int) ceil($limit * 0.1))
-            ->pluck('id');
-
-        // Merge all IDs and fetch full posts
-        $allIds = $followingPosts
-            ->merge($trendingPosts)
-            ->merge($discoveryPosts)
-            ->merge($systemPosts)
-            ->unique();
-
-        // If not enough posts, fill with recent
-        if ($allIds->count() < $limit) {
-            $filler = Post::active()
-                ->whereNotIn('id', $allIds)
-                ->orderByDesc('created_at')
-                ->take($limit - $allIds->count())
-                ->pluck('id');
-            $allIds = $allIds->merge($filler);
-        }
-
-        $posts = $baseQuery
-            ->whereIn('id', $allIds)
+            ->orderByRaw(
+                // Boost: following posts first, then by engagement + recency
+                '(CASE WHEN user_id IN (' . (empty($followingIds) ? '0' : implode(',', $followingIds)) . ') THEN 2 ELSE 0 END)
+                + (CASE WHEN type IN ("place_unlock","badge_earned","event_completed") THEN 1 ELSE 0 END)
+                DESC'
+            )
             ->orderByDesc('created_at')
             ->paginate($perPage);
 
-        // Add user's reaction type to each post
+        // Attach user's reaction type to each post
         $userReactions = Reaction::where('user_id', $user->id)
             ->whereIn('post_id', $posts->pluck('id'))
             ->pluck('type', 'post_id');

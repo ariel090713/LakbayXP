@@ -175,5 +175,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/posts/{post}/comments', [CommunityController::class, 'addComment']);
     Route::post('/posts/{post}/react', [CommunityController::class, 'toggleReaction']);
     Route::get('/users/{user}/posts', [CommunityController::class, 'userPosts']);
+    Route::get('/my-posts', function (Request $request) {
+        return app(CommunityController::class)->userPosts($request, $request->user());
+    });
     Route::get('/suggested-explorers', [CommunityController::class, 'suggestedExplorers']);
 });
