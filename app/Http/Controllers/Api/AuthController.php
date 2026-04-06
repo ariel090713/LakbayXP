@@ -34,17 +34,30 @@ class AuthController extends Controller
             $name = $verifiedToken->claims()->get('name') ?? $email;
             $googleId = $verifiedToken->claims()->get('firebase')['identities']['google.com'][0] ?? null;
 
-            // Find or create local user (mobile users always get 'user' role)
-            $user = User::firstOrCreate(
-                ['firebase_uid' => $firebaseUid],
-                [
-                    'name' => $name,
-                    'email' => $email,
-                    'username' => Str::slug(explode('@', $email)[0]) . '-' . Str::random(4),
-                    'google_id' => $googleId,
-                    'role' => UserRole::User,
-                ]
-            );
+            // Find by firebase_uid first, then by email (user may exist from web login)
+            $user = User::where('firebase_uid', $firebaseUid)->first();
+
+            if (!$user) {
+                $user = User::where('email', $email)->first();
+
+                if ($user) {
+                    // Existing user (e.g. organizer who signed up via web) — link Firebase UID
+                    $user->update([
+                        'firebase_uid' => $firebaseUid,
+                        'google_id' => $googleId ?? $user->google_id,
+                    ]);
+                } else {
+                    // Brand new user
+                    $user = User::create([
+                        'firebase_uid' => $firebaseUid,
+                        'name' => $name,
+                        'email' => $email,
+                        'username' => Str::slug(explode('@', $email)[0]) . '-' . Str::random(4),
+                        'google_id' => $googleId,
+                        'role' => UserRole::User,
+                    ]);
+                }
+            }
 
             // Issue Sanctum token for API access
             $token = $user->createToken('mobile-app')->plainTextToken;
