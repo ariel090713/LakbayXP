@@ -26,6 +26,26 @@ use Illuminate\Support\Facades\Route;
 // Public auth endpoint — mobile Firebase login
 Route::post('/auth/firebase', [AuthController::class, 'firebaseLogin']);
 
+// Public categories endpoint (no auth needed)
+Route::get('/categories', function () {
+    $icons = [
+        'mountain'=>'⛰️','beach'=>'🏖️','island'=>'🏝️','falls'=>'💧',
+        'river'=>'🌊','lake'=>'🏞️','campsite'=>'⛺','historical'=>'🏛️',
+        'food_destination'=>'🍜','road_trip'=>'🚗','hidden_gem'=>'💎',
+    ];
+
+    $categories = collect(\App\Enums\PlaceCategory::cases())->map(function ($cat) use ($icons) {
+        return [
+            'value' => $cat->value,
+            'label' => str_replace('_', ' ', ucfirst($cat->value)),
+            'icon' => $icons[$cat->value] ?? '📍',
+            'place_count' => \App\Models\Place::where('category', $cat->value)->where('is_active', true)->count(),
+        ];
+    });
+
+    return response()->json($categories);
+});
+
 Route::middleware('auth:sanctum')->group(function () {
     // FCM token registration
     Route::post('/auth/fcm-token', [AuthController::class, 'updateFcmToken']);
