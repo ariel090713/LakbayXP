@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\PlaceController;
 use App\Http\Controllers\Api\PlaceUnlockController;
 use App\Http\Controllers\Api\RewardController;
 use App\Http\Controllers\Api\ProfileController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
