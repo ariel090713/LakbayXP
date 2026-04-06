@@ -46,6 +46,19 @@ Route::get('/categories', function () {
     return response()->json($categories);
 });
 
+// All places for map (lightweight, no pagination)
+Route::get('/places/all', function () {
+    $places = \App\Models\Place::where('is_active', true)
+        ->whereNotNull('latitude')
+        ->whereNotNull('longitude')
+        ->withCount('unlockedByUsers')
+        ->select(['id', 'name', 'slug', 'category', 'region', 'province', 'latitude', 'longitude', 'xp_reward'])
+        ->orderBy('name')
+        ->get();
+
+    return response()->json(['data' => $places]);
+});
+
 Route::middleware('auth:sanctum')->group(function () {
     // FCM token registration
     Route::post('/auth/fcm-token', [AuthController::class, 'updateFcmToken']);
