@@ -27,6 +27,15 @@ class Post extends Model
 
     public function scopeActive($q) { return $q->where('is_active', true); }
 
+    public function getReactionCountsAttribute(): array
+    {
+        return $this->reactions()
+            ->selectRaw('type, COUNT(*) as count')
+            ->groupBy('type')
+            ->pluck('count', 'type')
+            ->toArray();
+    }
+
     // Trending score: reactions + comments weighted by recency
     public function getTrendingScoreAttribute(): float
     {

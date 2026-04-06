@@ -174,6 +174,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/posts/{post}/comments', [CommunityController::class, 'getComments']);
     Route::post('/posts/{post}/comments', [CommunityController::class, 'addComment']);
     Route::post('/posts/{post}/react', [CommunityController::class, 'toggleReaction']);
+    Route::post('/comments/{comment}/react', [CommunityController::class, 'toggleCommentReaction']);
     Route::get('/users/{user}/posts', [CommunityController::class, 'userPosts']);
     Route::get('/my-posts', function (Request $request) {
         return app(CommunityController::class)->userPosts($request, $request->user());

@@ -50,6 +50,7 @@ class CommunityController extends Controller
 
         $posts->getCollection()->transform(function ($post) use ($userReactions) {
             $post->user_reaction = $userReactions[$post->id] ?? null;
+            $post->reaction_counts = $post->reaction_counts;
             return $post;
         });
 
@@ -81,13 +82,19 @@ class CommunityController extends Controller
         // Upload images
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $i => $image) {
-                $path = Storage::disk()->putFile('posts', $image);
-                if ($path) {
-                    PostImage::create([
-                        'post_id' => $post->id,
-                        'image_path' => $path,
-                        'sort_order' => $i,
-                    ]);
+                try {
+                    $path = Storage::disk('s3')->putFile('posts', $image);
+                    if ($path) {
+                        PostImage::create([
+                            'post_id' => $post->id,
+                            'image_path' => $path,
+                            'sort_order' => $i,
+                        ]);
+                    } else {
+                        \Log::error('Post image upload returned false', ['post_id' => $post->id, 'index' => $i]);
+                    }
+                } catch (\Throwable $e) {
+                    \Log::error('Post image upload failed', ['post_id' => $post->id, 'error' => $e->getMessage()]);
                 }
             }
         }
@@ -161,11 +168,31 @@ class CommunityController extends Controller
      */
     public function getComments(Request $request, Post $post): JsonResponse
     {
+        $user = $request->user();
         $comments = $post->comments()
             ->whereNull('parent_id')
             ->with(['user:id,name,username,avatar_path', 'replies.user:id,name,username,avatar_path'])
+            ->withCount('reactions')
             ->orderByDesc('created_at')
             ->paginate($request->input('per_page', 15));
+
+        // Attach per-type reaction counts + user's reaction
+        $commentIds = $comments->pluck('id')->merge($comments->pluck('replies.*.id')->flatten())->filter();
+        $userCommentReactions = \App\Models\CommentReaction::where('user_id', $user->id)
+            ->whereIn('comment_id', $commentIds)
+            ->pluck('type', 'comment_id');
+
+        $comments->getCollection()->transform(function ($comment) use ($userCommentReactions) {
+            $comment->reaction_counts = $comment->reaction_counts;
+            $comment->user_reaction = $userCommentReactions[$comment->id] ?? null;
+            $comment->replies->transform(function ($reply) use ($userCommentReactions) {
+                $reply->reaction_counts = $reply->reaction_counts;
+                $reply->reactions_count = $reply->reactions()->count();
+                $reply->user_reaction = $userCommentReactions[$reply->id] ?? null;
+                return $reply;
+            });
+            return $comment;
+        });
 
         return response()->json($comments);
     }
@@ -209,6 +236,46 @@ class CommunityController extends Controller
             'reacted' => true,
             'type' => $type,
             'reactions_count' => $post->reactions()->count(),
+        ]);
+    }
+
+    /**
+     * Toggle reaction on a comment.
+     */
+    public function toggleCommentReaction(Request $request, Comment $comment): JsonResponse
+    {
+        $validated = $request->validate([
+            'type' => ['nullable', 'in:like,love,fire,wow,congrats'],
+        ]);
+
+        $type = $validated['type'] ?? 'like';
+        $userId = $request->user()->id;
+
+        $existing = \App\Models\CommentReaction::where('comment_id', $comment->id)->where('user_id', $userId)->first();
+
+        if ($existing) {
+            if ($existing->type === $type) {
+                $existing->delete();
+                return response()->json([
+                    'message' => 'Reaction removed.',
+                    'reacted' => false,
+                    'reactions_count' => $comment->reactions()->count(),
+                ]);
+            }
+            $existing->update(['type' => $type]);
+        } else {
+            \App\Models\CommentReaction::create([
+                'comment_id' => $comment->id,
+                'user_id' => $userId,
+                'type' => $type,
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Reacted.',
+            'reacted' => true,
+            'type' => $type,
+            'reactions_count' => $comment->reactions()->count(),
         ]);
     }
 
