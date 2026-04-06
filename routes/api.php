@@ -67,10 +67,29 @@ Route::middleware('auth:sanctum')->group(function () {
     // Current user profile
     Route::get('/me', function (Request $request) {
         $user = $request->user();
-        $user->loadCount(['unlockedPlaces', 'badges', 'followers', 'following']);
 
-        $xpService = app(\App\Services\XpService::class);
-        $xpProgress = $xpService->getProgress($user);
+        try {
+            $user->loadCount(['unlockedPlaces', 'badges']);
+        } catch (\Throwable $e) {
+            // ignore if relationship fails
+        }
+
+        $followersCount = 0;
+        $followingCount = 0;
+        try {
+            $followersCount = $user->followers()->count();
+            $followingCount = $user->following()->count();
+        } catch (\Throwable $e) {
+            // follows table might not exist
+        }
+
+        $xpProgress = null;
+        try {
+            $xpService = app(\App\Services\XpService::class);
+            $xpProgress = $xpService->getProgress($user);
+        } catch (\Throwable $e) {
+            $xpProgress = ['level' => $user->level ?? 1, 'total_xp' => $user->xp ?? 0, 'progress_percent' => 0];
+        }
 
         return response()->json([
             'id' => $user->id,
@@ -78,16 +97,16 @@ Route::middleware('auth:sanctum')->group(function () {
             'email' => $user->email,
             'username' => $user->username,
             'avatar_path' => $user->avatar_path,
-            'role' => $user->role,
-            'level' => $user->level,
-            'xp' => $user->xp,
+            'role' => $user->role instanceof \BackedEnum ? $user->role->value : $user->role,
+            'level' => $user->level ?? 1,
+            'xp' => $user->xp ?? 0,
             'xp_progress' => $xpProgress,
             'total_points' => $user->total_points ?? 0,
             'available_points' => $user->available_points ?? 0,
-            'unlocked_places_count' => $user->unlocked_places_count,
-            'badges_count' => $user->badges_count,
-            'followers_count' => $user->followers_count,
-            'following_count' => $user->following_count,
+            'unlocked_places_count' => $user->unlocked_places_count ?? 0,
+            'badges_count' => $user->badges_count ?? 0,
+            'followers_count' => $followersCount,
+            'following_count' => $followingCount,
             'created_at' => $user->created_at,
         ]);
     });
