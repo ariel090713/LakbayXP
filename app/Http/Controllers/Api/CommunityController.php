@@ -290,7 +290,6 @@ class CommunityController extends Controller
 
         return response()->json($posts);
     }
-}
 
     /**
      * Suggested explorers algorithm:
@@ -448,3 +447,4 @@ class CommunityController extends Controller
 
         return response()->json(['data' => $result]);
     }
+}
