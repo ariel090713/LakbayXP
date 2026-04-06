@@ -71,8 +71,8 @@
                     <a href="#events" class="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors">Events</a>
                     <a href="#places" class="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors">Places</a>
                     <a href="#xp" class="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors">XP & Levels</a>
-                    <a href="#rewards" class="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors">Rewards</a>
-                    <a href="#leaderboard" class="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors">Leaderboard</a>
+                    <a href="{{ route('rewards.page') }}" class="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors">Rewards</a>
+                    <a href="{{ route('leaderboard') }}" class="text-sm font-medium text-gray-600 hover:text-emerald-600 transition-colors">Leaderboard</a>
                 </div>
                 <div class="flex items-center gap-3">
                     @auth
@@ -786,6 +786,12 @@
                     </div>
                 @endforelse
             </div>
+            <div class="text-center mt-8">
+                <a href="{{ route('rewards.page') }}" class="inline-flex items-center gap-2 px-8 py-3 text-sm font-bold text-white rounded-full shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300" style="background: linear-gradient(135deg, #f59e0b, #f97316);">
+                    🎁 View All Rewards
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                </a>
+            </div>
         </div>
     </section>
 
@@ -901,6 +907,12 @@
                         </div>
                     </div>
                 @endforeach
+                <div class="text-center mt-8">
+                    <a href="{{ route('leaderboard') }}" class="inline-flex items-center gap-2 px-8 py-3 text-sm font-bold text-white rounded-full shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300" style="background: linear-gradient(135deg, #059669, #0891b2);">
+                        🏆 View Full Leaderboard
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                    </a>
+                </div>
             </div>
         </div>
     </section>
@@ -946,8 +958,8 @@
                     <ul class="space-y-2 text-sm">
                         <li><a href="#events" class="hover:text-emerald-400 transition-colors">Upcoming Events</a></li>
                         <li><a href="#places" class="hover:text-emerald-400 transition-colors">Destinations</a></li>
-                        <li><a href="#rewards" class="hover:text-emerald-400 transition-colors">Rewards</a></li>
-                        <li><a href="#leaderboard" class="hover:text-emerald-400 transition-colors">Leaderboard</a></li>
+                        <li><a href="{{ route('rewards.page') }}" class="hover:text-emerald-400 transition-colors">Rewards</a></li>
+                        <li><a href="{{ route('leaderboard') }}" class="hover:text-emerald-400 transition-colors">Leaderboard</a></li>
                     </ul>
                 </div>
                 <div>
