@@ -46,8 +46,10 @@
         .map-popup .leaflet-popup-tip { background: rgba(15,23,42,0.92); }
         .map-popup .leaflet-popup-close-button { color: rgba(255,255,255,0.5); }
         .map-popup .leaflet-popup-close-button:hover { color: #fff; }
-        #ph-map { background: transparent; }
+        #ph-map { background: transparent; position: relative; z-index: 1; }
         #ph-map .leaflet-control-attribution { display: none; }
+        .leaflet-pane { z-index: 1 !important; }
+        .leaflet-top, .leaflet-bottom { z-index: 2 !important; }
         @keyframes blob { 0%,100%{border-radius:30% 70% 70% 30%/30% 30% 70% 70%} 50%{border-radius:70% 30% 30% 70%/70% 70% 30% 30%} }
         .xp-bar { background: linear-gradient(90deg, #059669, #0891b2, #6366f1); }
     </style>
@@ -576,13 +578,13 @@
                                 $secondPlace = $mapPlaces->sortByDesc('unlocked_by_users_count')->skip(1)->first();
                             @endphp
                             @if($topPlace)
-                                <div class="absolute -top-3 -right-3 z-[1000] p-3 rounded-xl bg-white/15 backdrop-blur-md border border-white/20 shadow-xl max-w-[160px] map-float" style="animation-delay: -2s">
+                                <div class="absolute -top-3 -right-3 z-[5] p-3 rounded-xl bg-white/15 backdrop-blur-md border border-white/20 shadow-xl max-w-[160px] map-float" style="animation-delay: -2s">
                                     <div class="text-xs font-bold text-white truncate">🏆 {{ $topPlace->name }}</div>
                                     <div class="text-[10px] text-white/60 mt-0.5">{{ $topPlace->unlocked_by_users_count }} explorers</div>
                                 </div>
                             @endif
                             @if($secondPlace)
-                                <div class="absolute -bottom-3 -left-3 z-[1000] p-3 rounded-xl bg-white/15 backdrop-blur-md border border-white/20 shadow-xl max-w-[160px] map-float" style="animation-delay: -4s">
+                                <div class="absolute -bottom-3 -left-3 z-[5] p-3 rounded-xl bg-white/15 backdrop-blur-md border border-white/20 shadow-xl max-w-[160px] map-float" style="animation-delay: -4s">
                                     <div class="text-xs font-bold text-white truncate">⚡ {{ $secondPlace->name }}</div>
                                     <div class="text-[10px] text-white/60 mt-0.5">{{ $secondPlace->experience_points ?? 0 }} XP</div>
                                 </div>

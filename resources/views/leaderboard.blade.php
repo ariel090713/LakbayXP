@@ -115,13 +115,104 @@
         </div>
     </section>
 
-    <!-- Podium (Top 3) -->
+    <!-- Top 5 Showcase -->
     <section class="py-12 bg-gray-50">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            @if($topExplorers->count() >= 3)
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-10">
+                <h2 class="text-2xl font-extrabold text-gray-900">🏆 Top 5 Explorers</h2>
+                <p class="text-sm text-gray-400 mt-1">The legends of LakbayXP</p>
+            </div>
+
+            @if($topExplorers->count() >= 5)
+                {{-- Podium: 4th, 2nd, 1st, 3rd, 5th --}}
+                <div class="flex items-end justify-center gap-2 sm:gap-4 mb-12">
+                    @php
+                        $podiumOrder = [3, 1, 0, 2, 4]; // display order: 4th, 2nd, 1st, 3rd, 5th
+                        $podiumHeights = ['h-24 sm:h-32', 'h-36 sm:h-44', 'h-44 sm:h-56', 'h-28 sm:h-36', 'h-20 sm:h-28'];
+                        $podiumBgs = [
+                            'bg-gradient-to-t from-indigo-100 to-indigo-50 border-indigo-200',
+                            'bg-gradient-to-t from-gray-200 to-gray-100 border-gray-300',
+                            'bg-gradient-to-t from-amber-200 to-amber-50 border-amber-300 rank-glow',
+                            'bg-gradient-to-t from-amber-100 to-orange-50 border-amber-200',
+                            'bg-gradient-to-t from-purple-100 to-purple-50 border-purple-200',
+                        ];
+                        $crownIcons = ['4', '🥈', '👑', '🥉', '5'];
+                        $rankLabels = ['4th', '2nd', '1st', '3rd', '5th'];
+                        $avatarSizes = [
+                            'w-12 h-12 sm:w-14 sm:h-14 text-base',
+                            'w-14 h-14 sm:w-18 sm:h-18 text-lg',
+                            'w-18 h-18 sm:w-22 sm:h-22 text-2xl',
+                            'w-14 h-14 sm:w-16 sm:h-16 text-lg',
+                            'w-12 h-12 sm:w-14 sm:h-14 text-base',
+                        ];
+                        $podiumWidths = ['w-20 sm:w-24', 'w-22 sm:w-28', 'w-26 sm:w-36', 'w-22 sm:w-28', 'w-20 sm:w-24'];
+                        $delays = [0.6, 0.3, 0, 0.4, 0.7];
+                    @endphp
+
+                    @foreach($podiumOrder as $pi => $rank)
+                        @php
+                            $user = $topExplorers[$rank];
+                            $tier = getTier($user->level, $tiers);
+                            $isChamp = $rank === 0;
+                            $isTop3 = $rank < 3;
+                        @endphp
+                        <div class="podium-rise flex flex-col items-center" style="animation-delay: {{ $delays[$pi] }}s">
+                            {{-- Crown/Rank icon --}}
+                            <div class="mb-1">
+                                @if($rank === 0)
+                                    <span class="text-2xl sm:text-3xl pulse-badge block">👑</span>
+                                @elseif($rank === 1)
+                                    <span class="text-xl sm:text-2xl block">🥈</span>
+                                @elseif($rank === 2)
+                                    <span class="text-xl sm:text-2xl block">🥉</span>
+                                @else
+                                    <span class="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-xs font-extrabold text-gray-500">{{ $rank + 1 }}</span>
+                                @endif
+                            </div>
+
+                            {{-- Avatar --}}
+                            <div class="relative mb-2">
+                                <div class="{{ $avatarSizes[$pi] }} rounded-full {{ $isChamp ? 'ring-4 ring-amber-400 shadow-xl shadow-amber-400/30' : ($isTop3 ? 'ring-2 ring-gray-200' : 'ring-2 ring-gray-100') }} bg-gradient-to-br from-emerald-400 to-cyan-400 flex items-center justify-center text-white font-extrabold">
+                                    {{ $user->initials() }}
+                                </div>
+                                <div class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white shadow flex items-center justify-center text-xs">
+                                    {{ $tier['icon'] }}
+                                </div>
+                            </div>
+
+                            {{-- Name --}}
+                            <div class="text-center mb-1">
+                                <div class="text-xs sm:text-sm font-extrabold text-gray-900 truncate max-w-[90px] sm:max-w-[110px]">{{ $user->username ?? $user->name }}</div>
+                                <div class="text-[10px] text-gray-400">{{ $tier['name'] }}</div>
+                            </div>
+
+                            {{-- Level + XP --}}
+                            <div class="text-center mb-2">
+                                <div class="text-sm sm:text-lg font-extrabold gradient-text">Lvl {{ $user->level }}</div>
+                                <div class="text-[9px] font-bold text-gray-400">{{ number_format($user->xp) }} XP</div>
+                            </div>
+
+                            {{-- Mini stats --}}
+                            <div class="flex gap-2 text-[9px] font-semibold text-gray-400 mb-2">
+                                <span>🔓{{ $user->unlocked_places_count }}</span>
+                                <span>🏅{{ $user->badges_count }}</span>
+                            </div>
+
+                            {{-- Podium block --}}
+                            <div class="{{ $podiumHeights[$pi] }} {{ $podiumWidths[$pi] }} {{ $podiumBgs[$pi] }} rounded-t-2xl border border-b-0 flex items-start justify-center pt-2 sm:pt-3 relative overflow-hidden">
+                                <span class="text-xl sm:text-2xl font-extrabold {{ $isChamp ? 'text-amber-600' : ($isTop3 ? 'text-gray-400' : 'text-gray-300') }}">{{ $rankLabels[$pi] }}</span>
+                                @if($isChamp)
+                                    <div class="absolute inset-0 shimmer pointer-events-none"></div>
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            @elseif($topExplorers->count() >= 3)
+                {{-- Fallback: top 3 only if less than 5 --}}
                 <div class="flex items-end justify-center gap-4 sm:gap-6 mb-12">
                     @php
-                        $podiumOrder = [1, 0, 2]; // 2nd, 1st, 3rd
+                        $podiumOrder = [1, 0, 2];
                         $podiumHeights = ['h-36 sm:h-44', 'h-44 sm:h-56', 'h-28 sm:h-36'];
                         $podiumBgs = [
                             'bg-gradient-to-t from-gray-200 to-gray-100 border-gray-200',
@@ -131,45 +222,24 @@
                         $crownIcons = ['🥈', '👑', '🥉'];
                         $rankLabels = ['2nd', '1st', '3rd'];
                     @endphp
-
                     @foreach($podiumOrder as $pi => $rank)
                         @php
                             $user = $topExplorers[$rank];
                             $tier = getTier($user->level, $tiers);
                         @endphp
                         <div class="podium-rise flex flex-col items-center" style="animation-delay: {{ [0.3, 0, 0.5][$pi] }}s">
-                            <!-- Avatar + Crown -->
-                            <div class="relative mb-3">
-                                <div class="text-3xl sm:text-4xl absolute -top-5 left-1/2 -translate-x-1/2 {{ $rank === 0 ? 'pulse-badge' : '' }}">{{ $crownIcons[$pi] }}</div>
-                                <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full {{ $rank === 0 ? 'ring-4 ring-amber-400 shadow-xl shadow-amber-400/30' : 'ring-2 ring-gray-200' }} bg-gradient-to-br from-emerald-400 to-cyan-400 flex items-center justify-center text-white text-xl sm:text-2xl font-extrabold mt-4">
+                            <div class="text-2xl sm:text-3xl mb-1 {{ $rank === 0 ? 'pulse-badge' : '' }}">{{ $crownIcons[$pi] }}</div>
+                            <div class="relative mb-2">
+                                <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full {{ $rank === 0 ? 'ring-4 ring-amber-400 shadow-xl shadow-amber-400/30' : 'ring-2 ring-gray-200' }} bg-gradient-to-br from-emerald-400 to-cyan-400 flex items-center justify-center text-white text-xl sm:text-2xl font-extrabold">
                                     {{ $user->initials() }}
                                 </div>
-                                <div class="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-white shadow flex items-center justify-center text-sm">
-                                    {{ $tier['icon'] }}
-                                </div>
+                                <div class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white shadow flex items-center justify-center text-xs">{{ $tier['icon'] }}</div>
                             </div>
-
-                            <!-- Name + Stats -->
-                            <div class="text-center mb-3">
-                                <div class="text-sm sm:text-base font-extrabold text-gray-900 truncate max-w-[120px]">{{ $user->username ?? $user->name }}</div>
-                                <div class="text-xs text-gray-400">{{ $tier['name'] }}</div>
-                            </div>
-
-                            <!-- XP + Level -->
-                            <div class="text-center mb-3">
-                                <div class="text-lg sm:text-xl font-extrabold gradient-text">Lvl {{ $user->level }}</div>
-                                <div class="text-[10px] font-bold text-gray-400">{{ number_format($user->xp) }} XP</div>
-                            </div>
-
-                            <!-- Mini stats -->
-                            <div class="flex gap-3 text-[10px] font-semibold text-gray-400 mb-3">
-                                <span>🔓 {{ $user->unlocked_places_count }}</span>
-                                <span>🏅 {{ $user->badges_count }}</span>
-                            </div>
-
-                            <!-- Podium block -->
+                            <div class="text-sm font-extrabold text-gray-900 truncate max-w-[110px]">{{ $user->username ?? $user->name }}</div>
+                            <div class="text-lg font-extrabold gradient-text">Lvl {{ $user->level }}</div>
+                            <div class="text-[10px] font-bold text-gray-400 mb-2">{{ number_format($user->xp) }} XP</div>
                             <div class="{{ $podiumHeights[$pi] }} w-24 sm:w-32 {{ $podiumBgs[$pi] }} rounded-t-2xl border border-b-0 flex items-start justify-center pt-3">
-                                <span class="text-2xl sm:text-3xl font-extrabold {{ $rank === 0 ? 'text-amber-600' : 'text-gray-400' }}">{{ $rankLabels[$pi] }}</span>
+                                <span class="text-2xl font-extrabold {{ $rank === 0 ? 'text-amber-600' : 'text-gray-400' }}">{{ $rankLabels[$pi] }}</span>
                             </div>
                         </div>
                     @endforeach
