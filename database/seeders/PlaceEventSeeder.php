@@ -305,8 +305,8 @@ class PlaceEventSeeder extends Seeder
                         'place_id' => $p->id,
                         'day_number' => $si < 2 ? 1 : 2,
                         'sort_order' => $si + 1,
-                        'activity' => fake()->randomElement(['Trekking','Swimming','Sightseeing','Camping','Diving','Eating','Exploring']),
-                        'time_slot' => fake()->randomElement(['6:00 AM - 12:00 PM','1:00 PM - 5:00 PM','8:00 AM - 3:00 PM','5:00 AM - 10:00 AM']),
+                        'activity' => collect(['Trekking','Swimming','Sightseeing','Camping','Diving','Eating','Exploring'])->random(),
+                        'time_slot' => collect(['6:00 AM - 12:00 PM','1:00 PM - 5:00 PM','8:00 AM - 3:00 PM','5:00 AM - 10:00 AM'])->random(),
                     ]);
                 }
             }
@@ -357,7 +357,7 @@ class PlaceEventSeeder extends Seeder
                 $status = match ($event->status) {
                     EventStatus::Completed => BookingStatus::Approved,
                     EventStatus::Full => BookingStatus::Approved,
-                    default => fake()->randomElement([BookingStatus::Approved, BookingStatus::Approved, BookingStatus::Pending]),
+                    default => collect([BookingStatus::Approved, BookingStatus::Approved, BookingStatus::Pending])->random(),
                 };
 
                 Booking::firstOrCreate([

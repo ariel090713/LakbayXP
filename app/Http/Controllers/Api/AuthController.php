@@ -54,8 +54,15 @@ class AuthController extends Controller
                 'user' => $user,
             ]);
         } catch (\Exception $e) {
+            \Log::error('Firebase auth failed', [
+                'error' => $e->getMessage(),
+                'class' => get_class($e),
+                'token_length' => strlen($request->input('firebase_token', '')),
+            ]);
+
             return response()->json([
                 'message' => 'Invalid Firebase token.',
+                'debug' => config('app.debug') ? $e->getMessage() : null,
             ], 401);
         }
     }
