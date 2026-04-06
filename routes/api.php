@@ -63,6 +63,34 @@ Route::middleware('auth:sanctum')->group(function () {
     // FCM token registration
     Route::post('/auth/fcm-token', [AuthController::class, 'updateFcmToken']);
 
+    // Current user profile
+    Route::get('/me', function (Request $request) {
+        $user = $request->user();
+        $user->loadCount(['unlockedPlaces', 'badges', 'followers', 'following']);
+
+        $xpService = app(\App\Services\XpService::class);
+        $xpProgress = $xpService->getProgress($user);
+
+        return response()->json([
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'username' => $user->username,
+            'avatar_path' => $user->avatar_path,
+            'role' => $user->role,
+            'level' => $user->level,
+            'xp' => $user->xp,
+            'xp_progress' => $xpProgress,
+            'total_points' => $user->total_points ?? 0,
+            'available_points' => $user->available_points ?? 0,
+            'unlocked_places_count' => $user->unlocked_places_count,
+            'badges_count' => $user->badges_count,
+            'followers_count' => $user->followers_count,
+            'following_count' => $user->following_count,
+            'created_at' => $user->created_at,
+        ]);
+    });
+
     // Events
     Route::get('/events', [EventController::class, 'index']);
     Route::get('/events/{event:slug}', [EventController::class, 'show']);
@@ -80,6 +108,23 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/places', [PlaceController::class, 'index']);
     Route::get('/places/{place:slug}', [PlaceController::class, 'show']);
     Route::post('/places/{place}/unlock', [PlaceUnlockController::class, 'store']);
+
+    // My unlocked place IDs (for map, no pagination)
+    Route::get('/my-unlocks', function (Request $request) {
+        $unlocks = $request->user()->unlockedPlaces()
+            ->select(['places.id'])
+            ->withPivot('created_at', 'unlock_method')
+            ->get()
+            ->map(function ($place) {
+                return [
+                    'place_id' => $place->id,
+                    'unlocked_at' => $place->pivot->created_at,
+                    'method' => $place->pivot->unlock_method,
+                ];
+            });
+
+        return response()->json(['data' => $unlocks]);
+    });
 
     // Profile
     Route::get('/profile/{user:username}', [ProfileController::class, 'show']);
