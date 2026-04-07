@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\PlaceUnlockController;
 use App\Http\Controllers\Api\RewardController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\CommunityController;
+use App\Http\Controllers\Api\ExplorerController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -42,6 +43,7 @@ Route::get('/categories', function () {
             'label' => str_replace('_', ' ', ucfirst($cat->value)),
             'icon' => $icons[$cat->value] ?? '📍',
             'place_count' => \App\Models\Place::where('category', $cat->value)->where('is_active', true)->count(),
+            'event_count' => \App\Models\Event::where('category', $cat->value)->whereIn('status', ['published', 'full'])->count(),
         ];
     });
 
@@ -180,4 +182,8 @@ Route::middleware('auth:sanctum')->group(function () {
         return app(CommunityController::class)->userPosts($request, $request->user());
     });
     Route::get('/suggested-explorers', [CommunityController::class, 'suggestedExplorers']);
+
+    // Explorers list
+    Route::get('/explorers', [ExplorerController::class, 'index']);
+    Route::post('/location', [ExplorerController::class, 'updateLocation']);
 });

@@ -35,9 +35,11 @@ class CommunityController extends Controller
             ])
             ->withCount(['reactions', 'comments'])
             ->orderByRaw(
-                // Boost: following posts first, then by engagement + recency
+                // Boost: following +2, own posts +1, system posts +1, new (< 1hr) +1
                 '(CASE WHEN user_id IN (' . (empty($followingIds) ? '0' : implode(',', $followingIds)) . ') THEN 2 ELSE 0 END)
+                + (CASE WHEN user_id = ' . $user->id . ' THEN 1 ELSE 0 END)
                 + (CASE WHEN type IN ("place_unlock","badge_earned","event_completed") THEN 1 ELSE 0 END)
+                + (CASE WHEN created_at >= "' . now()->subHour()->toDateTimeString() . '" THEN 1 ELSE 0 END)
                 DESC'
             )
             ->orderByDesc('created_at')

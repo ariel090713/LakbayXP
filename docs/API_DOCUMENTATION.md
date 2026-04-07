@@ -814,3 +814,138 @@ Flutter: load next page when `current_page < last_page` on scroll.
 ```json
 { "message": "Server Error" }
 ```
+
+
+---
+
+## 🧭 EXPLORERS
+
+### GET /explorers
+Browse all explorers with smart sorting, filters, and near-me. Paginated.
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Query Params:**
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `sort` | string | `top` | Sort algorithm: `top`, `active`, `popular`, `newest`, `near_me` |
+| `search` | string | — | Search by name or username |
+| `min_level` | int | — | Minimum level filter |
+| `max_level` | int | — | Maximum level filter |
+| `has_badge` | int | — | Filter users who have this badge ID |
+| `city` | string | — | Filter by city name (partial match) |
+| `lat` | float | — | User latitude (required for `near_me`) |
+| `lng` | float | — | User longitude (required for `near_me`) |
+| `radius` | int | `100` | Radius in km (only for `near_me`) |
+| `per_page` | int | `20` | Results per page |
+| `page` | int | `1` | Page number |
+
+**Sort Algorithms:**
+- `top` — highest level + XP first (default)
+- `active` — most recently unlocked a place
+- `popular` — most followers
+- `newest` — newest accounts first
+- `near_me` — closest to your lat/lng (requires `lat` + `lng` params)
+
+**Example Requests:**
+```
+GET /api/explorers?sort=top&per_page=20
+GET /api/explorers?sort=near_me&lat=14.5995&lng=120.9842&radius=50
+GET /api/explorers?search=maria&min_level=3
+GET /api/explorers?has_badge=1&sort=popular
+GET /api/explorers?city=Manila&sort=active
+```
+
+**Response 200:**
+```json
+{
+  "data": [
+    {
+      "id": 5,
+      "name": "Maria Santos",
+      "username": "maria-santos-1",
+      "email": "maria-santos0@explorer.ph",
+      "avatar_path": "avatars/maria.jpg",
+      "level": 4,
+      "xp": 580,
+      "latitude": "14.5995000",
+      "longitude": "120.9842000",
+      "city": "Manila",
+      "total_points": 150,
+      "available_points": 100,
+      "created_at": "2026-04-01T10:00:00Z",
+      "unlocked_places_count": 8,
+      "badges_count": 3,
+      "followers_count": 25,
+      "following_count": 12,
+      "is_following": false,
+      "distance_km": 2.4
+    },
+    {
+      "id": 12,
+      "name": "Carlo Bautista",
+      "username": "carlo-bautista-6",
+      "avatar_path": null,
+      "level": 3,
+      "xp": 320,
+      "city": "Quezon City",
+      "unlocked_places_count": 5,
+      "badges_count": 2,
+      "followers_count": 18,
+      "following_count": 8,
+      "is_following": true,
+      "distance_km": 5.1
+    }
+  ],
+  "current_page": 1,
+  "last_page": 2,
+  "per_page": 20,
+  "total": 38
+}
+```
+
+**Notes:**
+- `is_following` — whether the current user follows this explorer
+- `distance_km` — only present when `sort=near_me`
+- Users without lat/lng are excluded from `near_me` results
+
+**Error 422 (near_me without coords):**
+```json
+{ "message": "lat and lng required for near_me sort." }
+```
+
+---
+
+### POST /location
+Update current user's location (call on app launch or when location changes).
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Payload:**
+```json
+{
+  "latitude": 14.5995,
+  "longitude": 120.9842,
+  "city": "Manila"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `latitude` | float | yes | -90 to 90 |
+| `longitude` | float | yes | -180 to 180 |
+| `city` | string | no | City/area name (max 100 chars) |
+
+**Response 200:**
+```json
+{ "message": "Location updated." }
+```
+
+**Error 422:**
+```json
+{
+  "message": "The latitude field is required.",
+  "errors": { "latitude": ["The latitude field is required."] }
+}
+```
