@@ -214,6 +214,35 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/leaderboard', [LeaderboardController::class, 'index']);
     Route::get('/badges', [BadgeController::class, 'index']);
 
+    // My badges with viewed status
+    Route::get('/my-badges', function (Request $request) {
+        $badges = $request->user()->badges()
+            ->orderByPivot('awarded_at', 'desc')
+            ->get();
+
+        $unviewedCount = $request->user()->badges()->wherePivot('is_viewed', false)->count();
+
+        return response()->json([
+            'data' => $badges,
+            'unviewed_count' => $unviewedCount,
+        ]);
+    });
+
+    // Mark badge as viewed
+    Route::post('/my-badges/{badge}/view', function (Request $request, \App\Models\Badge $badge) {
+        $request->user()->badges()->updateExistingPivot($badge->id, ['is_viewed' => true]);
+        return response()->json(['message' => 'Badge marked as viewed.']);
+    });
+
+    // Mark all badges as viewed
+    Route::post('/my-badges/view-all', function (Request $request) {
+        \DB::table('user_badges')
+            ->where('user_id', $request->user()->id)
+            ->where('is_viewed', false)
+            ->update(['is_viewed' => true]);
+        return response()->json(['message' => 'All badges marked as viewed.']);
+    });
+
     // XP History & Category Leaderboard
     Route::get('/xp-history', function (Request $request) {
         $xpService = app(\App\Services\XpService::class);

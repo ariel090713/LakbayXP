@@ -17,6 +17,7 @@ class UnlockService
     public function __construct(
         protected AchievementService $achievementService,
         protected XpService $xpService,
+        protected NotificationService $notificationService,
     ) {}
 
     /**
