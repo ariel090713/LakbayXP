@@ -64,7 +64,7 @@ Return ONLY valid JSON array, no markdown, no explanation.";
 
         try {
             $response = Http::timeout(60)->post(
-                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={$this->geminiKey}",
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$this->geminiKey}",
                 [
                     'contents' => [['parts' => [['text' => $prompt]]]],
                     'generationConfig' => ['temperature' => 0.7, 'maxOutputTokens' => 4096],
@@ -127,7 +127,7 @@ Return ONLY valid JSON object, no markdown.";
 
         try {
             $response = Http::timeout(30)->post(
-                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={$this->geminiKey}",
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$this->geminiKey}",
                 [
                     'contents' => [['parts' => [['text' => $prompt]]]],
                     'generationConfig' => ['temperature' => 0.3, 'maxOutputTokens' => 1024],

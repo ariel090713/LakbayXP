@@ -62,8 +62,8 @@ class ExplorerController extends Controller
 
             $query->whereNotNull('latitude')->whereNotNull('longitude');
 
-            // Haversine formula for distance in km
-            $query->selectRaw('users.*, (
+            // Add distance calculation without duplicating columns
+            $query->selectRaw('(
                 6371 * acos(
                     cos(radians(?)) * cos(radians(latitude)) *
                     cos(radians(longitude) - radians(?)) +
@@ -71,7 +71,7 @@ class ExplorerController extends Controller
                 )
             ) AS distance_km', [$lat, $lng, $lat]);
 
-            $radius = $request->input('radius', 100); // default 100km
+            $radius = $request->input('radius', 100);
             $query->havingRaw('distance_km <= ?', [$radius]);
             $query->orderBy('distance_km');
         }
