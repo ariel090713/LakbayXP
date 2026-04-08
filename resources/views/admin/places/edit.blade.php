@@ -72,6 +72,10 @@
                         <label class="block text-sm font-medium text-gray-700 mb-1">XP Reward</label>
                         <input type="number" name="xp_reward" value="{{ old('xp_reward', $place->xp_reward) }}" min="0" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
                     </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Points Reward</label>
+                        <input type="number" name="points_reward" value="{{ old('points_reward', $place->points_reward) }}" min="0" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                    </div>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Cover Image</label>
