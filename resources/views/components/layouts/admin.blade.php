@@ -52,6 +52,10 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                     Events
                 </a>
+                <a href="{{ route('admin.xp.index') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ request()->routeIs('admin.xp.*') ? 'active text-emerald-700' : 'text-gray-600' }}">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    XP Management
+                </a>
 
                 <p class="px-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider mt-6 mb-2">People</p>
                 <a href="{{ route('admin.organizers.index') }}" class="sidebar-link flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium {{ request()->routeIs('admin.organizers.*') ? 'active text-emerald-700' : 'text-gray-600' }}">

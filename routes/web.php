@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\AdminOrganizerController;
 use App\Http\Controllers\Admin\AdminPlaceController;
 use App\Http\Controllers\Admin\AdminRewardController;
 use App\Http\Controllers\Admin\AdminEventController;
+use App\Http\Controllers\Admin\AdminXpController;
 use App\Http\Controllers\Organizer\OrganizerBookingController;
 use App\Http\Controllers\Organizer\OrganizerDashboardController;
 use App\Http\Controllers\Organizer\OrganizerEventController;
@@ -69,6 +70,10 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::get('/events/{event}', [AdminEventController::class, 'show'])->name('admin.events.show');
     Route::post('/events/{event}/approve', [AdminEventController::class, 'approve'])->name('admin.events.approve');
     Route::post('/events/{event}/reject', [AdminEventController::class, 'reject'])->name('admin.events.reject');
+
+    // XP Management
+    Route::get('/xp', [AdminXpController::class, 'index'])->name('admin.xp.index');
+    Route::post('/xp/grant', [AdminXpController::class, 'grant'])->name('admin.xp.grant');
 });
 
 // Organizer dashboard routes (Laravel session auth)
