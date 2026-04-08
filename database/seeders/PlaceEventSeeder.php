@@ -104,7 +104,7 @@ class PlaceEventSeeder extends Seeder
         $allPlaces = $this->getPlaceData();
 
         foreach ($allPlaces as $p) {
-            $places->push(Place::firstOrCreate(['slug' => $p['slug']], [
+            $places->push(Place::updateOrCreate(['slug' => $p['slug']], [
                 'name' => $p['name'],
                 'slug' => $p['slug'],
                 'description' => $p['desc'],
@@ -214,7 +214,7 @@ class PlaceEventSeeder extends Seeder
             // ── Historical (8) ──
             ['name'=>'Intramuros','slug'=>'intramuros','cat'=>PlaceCategory::Historical,'region'=>'NCR','province'=>'Manila','lat'=>14.5890,'lng'=>120.9750,'xp'=>50,'desc'=>'Walled city from the Spanish colonial era.'],
             ['name'=>'Vigan Heritage Village','slug'=>'vigan-heritage','cat'=>PlaceCategory::Historical,'region'=>'Ilocos','province'=>'Ilocos Sur','lat'=>17.5747,'lng'=>120.3869,'xp'=>70,'desc'=>'UNESCO World Heritage cobblestone streets.'],
-            ['name'=>'Corregidor Island','slug'=>'corregidor-island','cat'=>PlaceCategory::Historical,'region'=>'NCR','province'=>'Cavite','lat'=>14.3800,'lng'=>120.5700,'xp'=>80,'desc'=>'WWII fortress island in Manila Bay.'],
+            ['name'=>'Corregidor Island','slug'=>'corregidor-island','cat'=>PlaceCategory::Historical,'region'=>'CALABARZON','province'=>'Cavite','lat'=>14.3800,'lng'=>120.5700,'xp'=>80,'desc'=>'WWII fortress island in Manila Bay.'],
             ['name'=>'Fort Santiago','slug'=>'fort-santiago','cat'=>PlaceCategory::Historical,'region'=>'NCR','province'=>'Manila','lat'=>14.5950,'lng'=>120.9730,'xp'=>40,'desc'=>'Rizal\'s prison and Spanish citadel.'],
             ['name'=>'Banaue Rice Terraces','slug'=>'banaue-rice-terraces','cat'=>PlaceCategory::Historical,'region'=>'Cordillera','province'=>'Ifugao','lat'=>16.9200,'lng'=>121.0600,'xp'=>100,'desc'=>'2,000-year-old rice terraces carved into mountains.'],
             ['name'=>'Chocolate Hills','slug'=>'chocolate-hills','cat'=>PlaceCategory::Historical,'region'=>'Central Visayas','province'=>'Bohol','lat'=>9.7950,'lng'=>124.1670,'xp'=>60,'desc'=>'1,268 cone-shaped hills that turn brown in summer.'],
