@@ -23,6 +23,8 @@ class Badge extends Model
         'xp_reward',
     ];
 
+    protected $appends = ['icon_url'];
+
     protected function casts(): array
     {
         return [
@@ -31,6 +33,11 @@ class Badge extends Model
             'points' => 'integer',
             'xp_reward' => 'integer',
         ];
+    }
+
+    public function getIconUrlAttribute(): ?string
+    {
+        return $this->icon_path ? \Storage::disk('s3')->url($this->icon_path) : null;
     }
 
     public function users(): BelongsToMany

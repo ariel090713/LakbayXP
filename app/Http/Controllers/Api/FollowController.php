@@ -26,6 +26,9 @@ class FollowController extends Controller
 
         $follower->following()->attach($user->id);
 
+        // Notify the followed user
+        app(\App\Services\NotificationService::class)->notifyNewFollower($user, $follower);
+
         return response()->json(['message' => 'Successfully followed user.'], 201);
     }
 

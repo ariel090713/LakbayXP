@@ -68,8 +68,17 @@ class UnlockService
         ]);
 
         // Award XP from place (for leveling)
+        $xpResult = ['leveled_up' => false];
         if ($place->xp_reward > 0) {
-            $this->xpService->awardPlaceXp($user, $place, $event);
+            $xpResult = $this->xpService->awardPlaceXp($user, $place, $event);
+        }
+
+        // Notify place unlocked
+        $this->notificationService->notifyPlaceUnlocked($user, $place, $place->xp_reward ?? 0);
+
+        // Notify level up
+        if ($xpResult['leveled_up'] ?? false) {
+            $this->notificationService->notifyLevelUp($user, $xpResult['old_level'], $xpResult['new_level']);
         }
 
         // Trigger achievement recalculation (badges give points for rewards)

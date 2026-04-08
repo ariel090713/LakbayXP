@@ -3,14 +3,14 @@
 
 ---
 
-## ⚡ XP SYSTEM
+## 🔔 NOTIFICATIONS
 
-### GET /xp-history
-Current user's XP transaction history (paginated).
+### GET /notifications
+Current user's notifications (paginated).
 
 **Headers:** `Authorization: Bearer {token}`
 
-**Query Params:** `?per_page=15&page=1`
+**Query Params:** `?per_page=20&page=1`
 
 **Response 200:**
 ```json
@@ -19,149 +19,204 @@ Current user's XP transaction history (paginated).
     {
       "id": 45,
       "user_id": 9,
-      "amount": 150,
-      "source": "place_unlock",
-      "category": "mountain",
-      "description": "Unlocked Mt. Pulag (+150 XP)",
-      "place_id": 1,
-      "badge_id": null,
-      "event_id": 3,
-      "granted_by": null,
-      "balance_after": 310,
-      "created_at": "2026-04-08T10:30:00Z",
-      "place": { "id": 1, "name": "Mt. Pulag", "slug": "mt-pulag" },
-      "badge": null,
-      "event": { "id": 3, "title": "Mt. Pulag Sea of Clouds", "slug": "mt-pulag-soc" },
-      "granted_by_user": null
+      "type": "badge_earned",
+      "title": "🏅 Badge Unlocked!",
+      "body": "You earned the \"Mountain Goat\" badge! +50 points",
+      "data": {
+        "badge_id": 3,
+        "badge_name": "Mountain Goat",
+        "points": 50
+      },
+      "is_read": false,
+      "created_at": "2026-04-08T14:30:00Z"
     },
     {
       "id": 44,
-      "amount": 50,
-      "source": "badge",
-      "category": null,
-      "description": "Earned badge: Mountain Goat (+50 XP)",
-      "badge": { "id": 3, "name": "Mountain Goat", "slug": "mountain-goat" },
-      "balance_after": 160
+      "type": "level_up",
+      "title": "⚡ Level Up!",
+      "body": "You reached Level 4!",
+      "data": { "old_level": 3, "new_level": 4 },
+      "is_read": false
     },
     {
-      "id": 1,
-      "amount": 10,
-      "source": "welcome",
-      "category": null,
-      "description": "Welcome to LakbayXP! (+10 XP)",
-      "balance_after": 10
+      "id": 43,
+      "type": "place_unlocked",
+      "title": "🔓 Place Unlocked!",
+      "body": "You unlocked Mt. Pulag! +150 XP",
+      "data": { "place_id": 1, "place_name": "Mt. Pulag", "xp_earned": 150 },
+      "is_read": true
+    },
+    {
+      "id": 42,
+      "type": "booking_approved",
+      "title": "🎫 Booking Confirmed!",
+      "body": "You're in! Mt. Pulag Sea of Clouds on Apr 22, 2026",
+      "data": { "booking_id": 15, "event_id": 1, "event_title": "Mt. Pulag Sea of Clouds" },
+      "is_read": true
+    },
+    {
+      "id": 41,
+      "type": "booking_rejected",
+      "title": "Booking Update",
+      "body": "Your booking for Siargao Surf Camp was not approved.",
+      "data": { "booking_id": 16, "event_id": 5 },
+      "is_read": true
+    },
+    {
+      "id": 40,
+      "type": "event_completed",
+      "title": "🏆 Adventure Complete!",
+      "body": "You completed Mt. Pulag Sea of Clouds!",
+      "data": { "event_id": 1, "event_title": "Mt. Pulag Sea of Clouds" },
+      "is_read": true
+    },
+    {
+      "id": 39,
+      "type": "follow",
+      "title": "👤 New Follower",
+      "body": "Maria Santos started following you.",
+      "data": { "follower_id": 5, "follower_name": "Maria Santos", "follower_username": "maria-santos-1" },
+      "is_read": true
+    },
+    {
+      "id": 38,
+      "type": "comment",
+      "title": "💬 New Comment",
+      "body": "Carlo Bautista commented on your post.",
+      "data": { "post_id": 12, "commenter_id": 7, "commenter_name": "Carlo Bautista" },
+      "is_read": true
+    },
+    {
+      "id": 37,
+      "type": "reaction",
+      "title": "❤️ New Reaction",
+      "body": "Maria Santos reacted to your post.",
+      "data": { "post_id": 12, "reactor_id": 5, "reaction_type": "love" },
+      "is_read": true
+    },
+    {
+      "id": 36,
+      "type": "xp_earned",
+      "title": "⚡ XP Bonus!",
+      "body": "+100 XP: Promo bonus for early adopter",
+      "data": { "amount": 100 },
+      "is_read": true
     }
   ],
   "current_page": 1,
   "last_page": 3,
-  "per_page": 15,
+  "per_page": 20,
   "total": 45
 }
 ```
 
-**XP Sources:** `place_unlock`, `badge`, `event`, `welcome`, `admin`, `promo`, `referral`
+**Notification Types:**
+
+| Type | Trigger | Data Fields |
+|------|---------|-------------|
+| `badge_earned` | Badge awarded | `badge_id`, `badge_name`, `points` |
+| `level_up` | XP causes level increase | `old_level`, `new_level` |
+| `place_unlocked` | Place unlocked | `place_id`, `place_name`, `xp_earned` |
+| `booking_approved` | Organizer approves booking | `booking_id`, `event_id`, `event_title` |
+| `booking_rejected` | Organizer rejects booking | `booking_id`, `event_id` |
+| `event_completed` | Event marked complete | `event_id`, `event_title` |
+| `follow` | Someone follows you | `follower_id`, `follower_name`, `follower_username` |
+| `comment` | Someone comments on your post | `post_id`, `commenter_id`, `commenter_name` |
+| `reaction` | Someone reacts to your post | `post_id`, `reactor_id`, `reaction_type` |
+| `xp_earned` | Admin grants XP | `amount` |
+| `booking_created` | New booking (for organizer) | `booking_id`, `event_id` |
 
 ---
 
-### GET /xp-categories
-Current user's XP breakdown by place category.
+### GET /notifications/unread-count
+Unread notification count (for badge dot on tab).
 
 **Headers:** `Authorization: Bearer {token}`
 
 **Response 200:**
 ```json
-{
-  "data": {
-    "mountain": 450,
-    "beach": 160,
-    "island": 210,
-    "falls": 80,
-    "campsite": 70,
-    "historical": 50
-  }
-}
+{ "unread_count": 3 }
 ```
 
 ---
 
-### GET /leaderboard/category/{category}
-Category-specific leaderboard. Ranks users by total XP earned in that category.
+### POST /notifications/{id}/read
+Mark a single notification as read.
 
 **Headers:** `Authorization: Bearer {token}`
 
-**Path Params:** `category` — mountain, beach, island, falls, river, lake, campsite, historical, food_destination, road_trip, hidden_gem
+**Response 200:**
+```json
+{ "message": "Marked as read." }
+```
 
-**Query Params:** `?per_page=20&page=1`
+**Error 403:** Not your notification.
 
-**Example:** `GET /api/leaderboard/category/mountain`
+---
+
+### POST /notifications/read-all
+Mark all notifications as read.
+
+**Headers:** `Authorization: Bearer {token}`
+
+**Response 200:**
+```json
+{ "message": "All marked as read." }
+```
+
+---
+
+## 🏅 MY BADGES
+
+### GET /my-badges
+Current user's earned badges with viewed status.
+
+**Headers:** `Authorization: Bearer {token}`
 
 **Response 200:**
 ```json
 {
   "data": [
     {
-      "user_id": 5,
-      "category_xp": 450,
-      "name": "Maria Santos",
-      "username": "maria-santos-1",
-      "avatar_url": "https://bucket.s3.amazonaws.com/avatars/abc.jpg",
-      "level": 4,
-      "total_xp": 580
+      "id": 1,
+      "name": "Welcome Explorer",
+      "slug": "welcome-explorer",
+      "description": "Welcome to LakbayXP!",
+      "icon_path": "badges/welcome.png",
+      "icon_url": "https://bucket.s3.amazonaws.com/badges/welcome.png",
+      "points": 10,
+      "xp_reward": 10,
+      "pivot": {
+        "awarded_at": "2026-04-08T10:00:00Z",
+        "is_viewed": false
+      }
     },
     {
-      "user_id": 12,
-      "category_xp": 320,
-      "name": "Carlo Bautista",
-      "username": "carlo-bautista-6",
-      "avatar_url": null,
-      "level": 3,
-      "total_xp": 420
+      "id": 3,
+      "name": "Mountain Goat",
+      "slug": "mountain-goat",
+      "icon_url": "https://bucket.s3.amazonaws.com/badges/mountain-goat.png",
+      "points": 50,
+      "pivot": {
+        "awarded_at": "2026-04-08T12:00:00Z",
+        "is_viewed": true
+      }
     }
   ],
-  "current_page": 1,
-  "last_page": 2,
-  "per_page": 20,
-  "total": 35
+  "unviewed_count": 1
 }
 ```
 
 ---
 
-### POST /admin/grant-xp
-Admin grants XP to any user (admin role required).
+### POST /my-badges/{badge_id}/view
+Mark a badge as viewed.
 
-**Headers:** `Authorization: Bearer {admin_token}`
+**Response 200:** `{ "message": "Badge marked as viewed." }`
 
-**Payload:**
-```json
-{
-  "user_id": 5,
-  "amount": 100,
-  "description": "Promo bonus for early adopter",
-  "category": "mountain"
-}
-```
+---
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `user_id` | int | yes | Target user ID |
-| `amount` | int | yes | XP to grant (1-10000) |
-| `description` | string | yes | Reason (logged in history) |
-| `category` | string | no | Place category for category leaderboard |
+### POST /my-badges/view-all
+Mark all badges as viewed.
 
-**Response 200:**
-```json
-{
-  "message": "Granted 100 XP to Maria Santos.",
-  "result": {
-    "leveled_up": true,
-    "old_level": 3,
-    "new_level": 4,
-    "xp_gained": 100,
-    "total_xp": 680
-  }
-}
-```
-
-**Error 403:** Not admin role
-**Error 422:** Validation error
+**Response 200:** `{ "message": "All badges marked as viewed." }`

@@ -300,6 +300,39 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/my-posts', function (Request $request) {
         return app(CommunityController::class)->userPosts($request, $request->user());
     });
+
+    // Notifications
+    Route::get('/notifications', function (Request $request) {
+        $notifications = \App\Models\AppNotification::where('user_id', $request->user()->id)
+            ->orderByDesc('created_at')
+            ->paginate($request->input('per_page', 20));
+
+        return response()->json($notifications);
+    });
+
+    Route::get('/notifications/unread-count', function (Request $request) {
+        $count = \App\Models\AppNotification::where('user_id', $request->user()->id)
+            ->where('is_read', false)
+            ->count();
+
+        return response()->json(['unread_count' => $count]);
+    });
+
+    Route::post('/notifications/{notification}/read', function (Request $request, \App\Models\AppNotification $notification) {
+        if ($notification->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+        $notification->update(['is_read' => true]);
+        return response()->json(['message' => 'Marked as read.']);
+    });
+
+    Route::post('/notifications/read-all', function (Request $request) {
+        \App\Models\AppNotification::where('user_id', $request->user()->id)
+            ->where('is_read', false)
+            ->update(['is_read' => true]);
+        return response()->json(['message' => 'All marked as read.']);
+    });
+
     Route::get('/suggested-explorers', [CommunityController::class, 'suggestedExplorers']);
 
     // Explorers list

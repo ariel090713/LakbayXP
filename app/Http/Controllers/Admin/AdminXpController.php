@@ -61,6 +61,9 @@ class AdminXpController extends Controller
             category: $validated['category'] ?: null,
         );
 
+        // Notify user
+        app(\App\Services\NotificationService::class)->notifyXpGranted($user, $validated['amount'], $validated['description']);
+
         return redirect()->route('admin.xp.index')
             ->with('success', "Granted {$validated['amount']} XP to {$user->name}.");
     }

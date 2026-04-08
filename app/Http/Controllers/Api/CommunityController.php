@@ -163,6 +163,10 @@ class CommunityController extends Controller
 
         $comment->load('user:id,name,username,avatar_path');
 
+        // Notify post owner
+        $post->loadMissing('user');
+        app(\App\Services\NotificationService::class)->notifyComment($post->user, $request->user(), $post);
+
         return response()->json(['data' => $comment], 201);
     }
 
@@ -232,6 +236,10 @@ class CommunityController extends Controller
                 'user_id' => $userId,
                 'type' => $type,
             ]);
+
+            // Notify post owner
+            $post->loadMissing('user');
+            app(\App\Services\NotificationService::class)->notifyReaction($post->user, $request->user(), $post, $type);
         }
 
         return response()->json([
