@@ -11,7 +11,9 @@ class RegionProvinceSeeder extends Seeder
     {
         $data = [
             ['code' => 'NCR', 'name' => 'National Capital Region (NCR)', 'provinces' => [
-                'Metro Manila',
+                'Manila', 'Quezon City', 'Caloocan', 'Las Piñas', 'Makati',
+                'Malabon', 'Mandaluyong', 'Marikina', 'Muntinlupa', 'Navotas',
+                'Parañaque', 'Pasay', 'Pasig', 'San Juan', 'Taguig', 'Valenzuela', 'Pateros',
             ]],
             ['code' => 'CAR', 'name' => 'Cordillera Administrative Region (CAR)', 'provinces' => [
                 'Abra', 'Apayao', 'Benguet', 'Ifugao', 'Kalinga', 'Mountain Province',
@@ -44,38 +46,58 @@ class RegionProvinceSeeder extends Seeder
                 'Biliran', 'Eastern Samar', 'Leyte', 'Northern Samar', 'Samar', 'Southern Leyte',
             ]],
             ['code' => 'IX', 'name' => 'Region IX — Zamboanga Peninsula', 'provinces' => [
-                'Zamboanga del Norte', 'Zamboanga del Sur', 'Zamboanga Sibugay',
+                'Zamboanga del Norte', 'Zamboanga del Sur', 'Zamboanga Sibugay', 'Zamboanga City',
             ]],
             ['code' => 'X', 'name' => 'Region X — Northern Mindanao', 'provinces' => [
                 'Bukidnon', 'Camiguin', 'Lanao del Norte', 'Misamis Occidental', 'Misamis Oriental',
+                'Cagayan de Oro',
             ]],
             ['code' => 'XI', 'name' => 'Region XI — Davao Region', 'provinces' => [
                 'Davao de Oro', 'Davao del Norte', 'Davao del Sur', 'Davao Occidental', 'Davao Oriental',
+                'Davao City',
             ]],
             ['code' => 'XII', 'name' => 'Region XII — SOCCSKSARGEN', 'provinces' => [
                 'Cotabato', 'Sarangani', 'South Cotabato', 'Sultan Kudarat',
+                'General Santos', 'Cotabato City',
             ]],
             ['code' => 'XIII', 'name' => 'Region XIII — Caraga', 'provinces' => [
                 'Agusan del Norte', 'Agusan del Sur', 'Dinagat Islands', 'Surigao del Norte', 'Surigao del Sur',
+                'Butuan',
             ]],
             ['code' => 'BARMM', 'name' => 'Bangsamoro (BARMM)', 'provinces' => [
-                'Basilan', 'Lanao del Sur', 'Maguindanao del Norte', 'Maguindanao del Sur', 'Sulu', 'Tawi-Tawi',
+                'Basilan', 'Lanao del Sur', 'Maguindanao del Norte', 'Maguindanao del Sur',
+                'Sulu', 'Tawi-Tawi', 'Cotabato City',
             ]],
         ];
 
         foreach ($data as $order => $region) {
-            $regionId = DB::table('regions')->insertGetId([
-                'name' => $region['name'],
-                'code' => $region['code'],
-                'sort_order' => $order + 1,
-            ]);
+            // Insert region if not exists
+            $existing = DB::table('regions')->where('code', $region['code'])->first();
 
-            foreach ($region['provinces'] as $pOrder => $province) {
-                DB::table('provinces')->insert([
-                    'region_id' => $regionId,
-                    'name' => $province,
-                    'sort_order' => $pOrder + 1,
+            if ($existing) {
+                $regionId = $existing->id;
+            } else {
+                $regionId = DB::table('regions')->insertGetId([
+                    'name' => $region['name'],
+                    'code' => $region['code'],
+                    'sort_order' => $order + 1,
                 ]);
+            }
+
+            // Insert provinces if not exists
+            foreach ($region['provinces'] as $pOrder => $province) {
+                $exists = DB::table('provinces')
+                    ->where('region_id', $regionId)
+                    ->where('name', $province)
+                    ->exists();
+
+                if (!$exists) {
+                    DB::table('provinces')->insert([
+                        'region_id' => $regionId,
+                        'name' => $province,
+                        'sort_order' => $pOrder + 1,
+                    ]);
+                }
             }
         }
     }
