@@ -107,6 +107,7 @@ Route::middleware(['auth', 'role:organizer'])->prefix('organizer')->group(functi
     Route::get('/events/{event}/bookings', [OrganizerBookingController::class, 'index'])->name('organizer.bookings.index');
     Route::post('/bookings/{booking}/approve', [OrganizerBookingController::class, 'approve'])->name('organizer.bookings.approve');
     Route::post('/bookings/{booking}/reject', [OrganizerBookingController::class, 'reject'])->name('organizer.bookings.reject');
+    Route::post('/events/{event}/bookings/approve-all', [OrganizerBookingController::class, 'approveAll'])->name('organizer.bookings.approve-all');
     Route::post('/events/{event}/photos', [OrganizerEventPhotoController::class, 'store'])->name('organizer.events.photos.store');
 
     // Profile

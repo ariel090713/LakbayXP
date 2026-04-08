@@ -68,6 +68,30 @@ class OrganizerBookingController extends Controller
     }
 
     /**
+     * Approve all pending bookings for an event.
+     */
+    public function approveAll(Request $request, Event $event): RedirectResponse
+    {
+        $this->authorizeOrganizer($request, $event);
+
+        $pending = $event->bookings()->where('status', \App\Enums\BookingStatus::Pending)->get();
+        $count = 0;
+
+        foreach ($pending as $booking) {
+            try {
+                $this->bookingService->approveBooking($request->user(), $booking);
+                $count++;
+            } catch (\Throwable $e) {
+                // skip if slots run out
+                break;
+            }
+        }
+
+        return redirect()->route('organizer.bookings.index', $event)
+            ->with('success', "Approved {$count} bookings.");
+    }
+
+    /**
      * Ensure the authenticated user owns the event.
      */
     protected function authorizeOrganizer(Request $request, Event $event): void
