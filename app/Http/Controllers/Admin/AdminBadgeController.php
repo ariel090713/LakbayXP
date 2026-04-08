@@ -97,4 +97,91 @@ class AdminBadgeController extends Controller
         return redirect()->route('admin.badges.index')
             ->with('success', 'Badge deactivated successfully.');
     }
+
+    /**
+     * Show award badge form.
+     */
+    public function showAward(Badge $badge): View
+    {
+        $users = \App\Models\User::where('role', 'user')
+            ->orderBy('name')
+            ->get(['id', 'name', 'username', 'email']);
+
+        $alreadyAwarded = $badge->users()->pluck('users.id')->toArray();
+
+        return view('admin.badges.award', compact('badge', 'users', 'alreadyAwarded'));
+    }
+
+    /**
+     * Award badge to selected users.
+     */
+    public function award(Request $request, Badge $badge): RedirectResponse
+    {
+        $validated = $request->validate([
+            'user_ids' => ['required', 'array', 'min:1'],
+            'user_ids.*' => ['exists:users,id'],
+        ]);
+
+        $notificationService = app(\App\Services\NotificationService::class);
+        $xpService = app(\App\Services\XpService::class);
+        $awarded = 0;
+
+        foreach ($validated['user_ids'] as $userId) {
+            // Skip if already has badge
+            if ($badge->users()->where('users.id', $userId)->exists()) continue;
+
+            $badge->users()->attach($userId, ['awarded_at' => now()]);
+            $user = \App\Models\User::find($userId);
+
+            // Award points
+            if ($badge->points > 0) {
+                $user->increment('total_points', $badge->points);
+                $user->increment('available_points', $badge->points);
+            }
+
+            // Award XP
+            if (($badge->xp_reward ?? 0) > 0) {
+                $xpService->awardBadgeXp($user, $badge);
+            }
+
+            // Notify
+            $notificationService->notifyBadgeAwarded($user, $badge);
+            $awarded++;
+        }
+
+        return redirect()->route('admin.badges.index')
+            ->with('success', "Badge \"{$badge->name}\" awarded to {$awarded} user(s).");
+    }
+
+    /**
+     * Award badge to ALL users who don't have it yet.
+     */
+    public function awardAll(Badge $badge): RedirectResponse
+    {
+        $existingUserIds = $badge->users()->pluck('users.id')->toArray();
+        $users = \App\Models\User::where('role', 'user')
+            ->whereNotIn('id', $existingUserIds)
+            ->get();
+
+        $notificationService = app(\App\Services\NotificationService::class);
+        $xpService = app(\App\Services\XpService::class);
+
+        foreach ($users as $user) {
+            $badge->users()->attach($user->id, ['awarded_at' => now()]);
+
+            if ($badge->points > 0) {
+                $user->increment('total_points', $badge->points);
+                $user->increment('available_points', $badge->points);
+            }
+
+            if (($badge->xp_reward ?? 0) > 0) {
+                $xpService->awardBadgeXp($user, $badge);
+            }
+
+            $notificationService->notifyBadgeAwarded($user, $badge);
+        }
+
+        return redirect()->route('admin.badges.index')
+            ->with('success', "Badge \"{$badge->name}\" awarded to {$users->count()} user(s).");
+    }
 }

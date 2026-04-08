@@ -41,6 +41,13 @@ class Place extends Model
         ];
     }
 
+    protected $appends = ['cover_image_url'];
+
+    public function getCoverImageUrlAttribute(): ?string
+    {
+        return $this->cover_image_path ? \Storage::disk('s3')->url($this->cover_image_path) : null;
+    }
+
     public function events(): HasMany
     {
         return $this->hasMany(Event::class);

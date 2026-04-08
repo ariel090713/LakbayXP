@@ -118,7 +118,7 @@ class EventController extends Controller
             return response()->json(['message' => 'Event not found.'], 404);
         }
 
-        $event->load(['place', 'organizer']);
+        $event->load(['place.images', 'organizer', 'itinerary.place', 'rules']);
 
         return response()->json($event);
     }

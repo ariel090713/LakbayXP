@@ -16,9 +16,12 @@ class Badge extends Model
         'description',
         'icon_path',
         'category',
+        'rarity',
         'criteria_type',
         'criteria_value',
         'is_active',
+        'is_repeatable',
+        'max_claims',
         'points',
         'xp_reward',
     ];
@@ -30,8 +33,10 @@ class Badge extends Model
         return [
             'criteria_value' => 'array',
             'is_active' => 'boolean',
+            'is_repeatable' => 'boolean',
             'points' => 'integer',
             'xp_reward' => 'integer',
+            'max_claims' => 'integer',
         ];
     }
 

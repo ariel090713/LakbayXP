@@ -18,6 +18,7 @@ class UnlockService
         protected AchievementService $achievementService,
         protected XpService $xpService,
         protected NotificationService $notificationService,
+        protected PointsService $pointsService,
     ) {}
 
     /**
@@ -76,9 +77,13 @@ class UnlockService
         // Notify place unlocked
         $this->notificationService->notifyPlaceUnlocked($user, $place, $place->xp_reward ?? 0);
 
-        // Notify level up
+        // Award points from place
+        $this->pointsService->awardPlacePoints($user, $place);
+
+        // Notify level up + award level-up points
         if ($xpResult['leveled_up'] ?? false) {
             $this->notificationService->notifyLevelUp($user, $xpResult['old_level'], $xpResult['new_level']);
+            $this->pointsService->awardLevelUpPoints($user, $xpResult['new_level']);
         }
 
         // Trigger achievement recalculation (badges give points for rewards)

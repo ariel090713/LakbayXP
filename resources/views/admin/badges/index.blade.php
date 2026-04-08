@@ -42,6 +42,7 @@
                             <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
                                 <div class="flex items-center justify-end gap-2">
                                     <flux:button size="sm" href="{{ route('admin.badges.edit', $badge) }}">Edit</flux:button>
+                                    <a href="{{ route('admin.badges.award', $badge) }}" class="px-3 py-1 rounded-lg text-xs font-bold text-white" style="background: linear-gradient(135deg, #059669, #0891b2);">🏅 Award</a>
                                     @if($badge->is_active)
                                         <form method="POST" action="{{ route('admin.badges.destroy', $badge) }}" class="inline">
                                             @csrf

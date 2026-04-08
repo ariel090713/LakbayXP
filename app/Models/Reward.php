@@ -31,6 +31,13 @@ class Reward extends Model
         ];
     }
 
+    protected $appends = ['image_url'];
+
+    public function getImageUrlAttribute(): ?string
+    {
+        return $this->image_path ? \Storage::disk('s3')->url($this->image_path) : null;
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

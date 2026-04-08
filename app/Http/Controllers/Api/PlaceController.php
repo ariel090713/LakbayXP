@@ -96,6 +96,9 @@ class PlaceController extends Controller
             return response()->json(['message' => 'Place not found.'], 404);
         }
 
+        $place->load(['images', 'meta']);
+        $place->loadCount('unlockedByUsers');
+
         return response()->json($place);
     }
 }

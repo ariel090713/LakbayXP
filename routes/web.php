@@ -55,6 +55,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::resource('/places', AdminPlaceController::class)->names('admin.places');
     Route::post('/places/{place}/activate', [AdminPlaceController::class, 'activate'])->name('admin.places.activate');
     Route::resource('/badges', AdminBadgeController::class)->names('admin.badges');
+    Route::get('/badges/{badge}/award', [AdminBadgeController::class, 'showAward'])->name('admin.badges.award');
+    Route::post('/badges/{badge}/award', [AdminBadgeController::class, 'award'])->name('admin.badges.award.store');
+    Route::post('/badges/{badge}/award-all', [AdminBadgeController::class, 'awardAll'])->name('admin.badges.award.all');
     Route::post('/organizers/{user}/verify', [AdminOrganizerController::class, 'verify'])->name('admin.organizers.verify');
     Route::get('/organizers', [AdminOrganizerController::class, 'index'])->name('admin.organizers.index');
 
@@ -74,6 +77,20 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     // XP Management
     Route::get('/xp', [AdminXpController::class, 'index'])->name('admin.xp.index');
     Route::post('/xp/grant', [AdminXpController::class, 'grant'])->name('admin.xp.grant');
+
+    // Settings
+    Route::get('/settings', function () {
+        $settings = \App\Models\AppSetting::orderBy('group')->orderBy('key')->get();
+        return view('admin.settings', compact('settings'));
+    })->name('admin.settings');
+
+    Route::post('/settings', function (\Illuminate\Http\Request $request) {
+        foreach ($request->input('settings', []) as $key => $value) {
+            \App\Models\AppSetting::where('key', $key)->update(['value' => $value]);
+            \Illuminate\Support\Facades\Cache::forget("setting:{$key}");
+        }
+        return redirect()->route('admin.settings')->with('success', 'Settings saved.');
+    })->name('admin.settings.update');
 });
 
 // Organizer dashboard routes (Laravel session auth)

@@ -176,6 +176,29 @@ Route::middleware('auth:sanctum')->group(function () {
                 'result' => $result,
             ]);
         });
+
+        // Admin grant points
+        Route::post('/admin/grant-points', function (Request $request) {
+            $request->validate([
+                'user_id' => ['required', 'exists:users,id'],
+                'amount' => ['required', 'integer', 'min:1', 'max:100000'],
+                'description' => ['required', 'string', 'max:255'],
+            ]);
+
+            $user = \App\Models\User::findOrFail($request->input('user_id'));
+            $pointsService = app(\App\Services\PointsService::class);
+            $history = $pointsService->adminGrantPoints(
+                admin: $request->user(),
+                user: $user,
+                amount: $request->input('amount'),
+                description: $request->input('description'),
+            );
+
+            return response()->json([
+                'message' => "Granted {$request->input('amount')} points to {$user->name}.",
+                'history' => $history,
+            ]);
+        });
     });
 
     // Places & Unlocks
@@ -252,6 +275,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/xp-categories', function (Request $request) {
         $xpService = app(\App\Services\XpService::class);
         return response()->json(['data' => $xpService->getCategoryXp($request->user())]);
+    });
+
+    // Points History
+    Route::get('/points-history', function (Request $request) {
+        $pointsService = app(\App\Services\PointsService::class);
+        return response()->json($pointsService->getHistory($request->user(), $request->input('per_page', 15)));
     });
 
     Route::get('/leaderboard/category/{category}', function (Request $request, string $category) {

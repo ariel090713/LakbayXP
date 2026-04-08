@@ -12,6 +12,7 @@ class AchievementService
     public function __construct(
         protected NotificationService $notificationService,
         protected XpService $xpService,
+        protected PointsService $pointsService,
     ) {}
     /**
      * Pure computation: determine explorer level from unlock count.
@@ -42,22 +43,39 @@ class AchievementService
         $newBadges = collect();
         $existingBadgeIds = $user->badges()->pluck('badges.id');
         $candidateBadges = Badge::where('is_active', true)
-            ->whereNotIn('id', $existingBadgeIds)
+            ->where(function ($q) use ($existingBadgeIds) {
+                $q->whereNotIn('id', $existingBadgeIds)
+                  ->orWhere('is_repeatable', true);
+            })
             ->get();
 
         $unlockStats = $this->getUserUnlockStats($user);
 
         foreach ($candidateBadges as $badge) {
             if ($this->meetsCriteria($badge, $unlockStats)) {
-                $user->badges()->attach($badge->id, ['awarded_at' => now()]);
+                $existing = $user->badges()->where('badges.id', $badge->id)->first();
+
+                if ($existing) {
+                    // Repeatable badge — check max claims
+                    if (!$badge->is_repeatable) continue;
+                    $currentClaims = $existing->pivot->claim_count ?? 1;
+                    if ($badge->max_claims && $currentClaims >= $badge->max_claims) continue;
+
+                    $user->badges()->updateExistingPivot($badge->id, [
+                        'claim_count' => $currentClaims + 1,
+                        'awarded_at' => now(),
+                        'is_viewed' => false,
+                    ]);
+                } else {
+                    // First time earning
+                    $user->badges()->attach($badge->id, ['awarded_at' => now()]);
+                }
+
                 $newBadges->push($badge);
                 $this->notificationService->notifyBadgeAwarded($user, $badge);
 
-                // Award points from badge (for rewards redemption)
-                if ($badge->points > 0) {
-                    $user->increment('total_points', $badge->points);
-                    $user->increment('available_points', $badge->points);
-                }
+                // Award points from badge (via PointsService with history)
+                $this->pointsService->awardBadgePoints($user, $badge);
 
                 // Award XP from badge (with history)
                 if (($badge->xp_reward ?? 0) > 0) {
