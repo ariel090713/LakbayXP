@@ -50,15 +50,20 @@ class EventController extends Controller
 
         // Region (via place relationship)
         if ($request->filled('region')) {
-            $query->whereHas('place', function ($q) use ($request) {
-                $q->where('region', 'like', '%' . $request->input('region') . '%');
+            $region = $request->input('region');
+            $query->whereHas('place', function ($q) use ($region) {
+                $q->where('region', $region)
+                  ->orWhere('region', 'like', "%{$region}%")
+                  ->orWhereRaw('? LIKE CONCAT("%", region, "%")', [$region]);
             });
         }
 
         // Province (via place relationship)
         if ($request->filled('province')) {
-            $query->whereHas('place', function ($q) use ($request) {
-                $q->where('province', 'like', '%' . $request->input('province') . '%');
+            $province = $request->input('province');
+            $query->whereHas('place', function ($q) use ($province) {
+                $q->where('province', $province)
+                  ->orWhere('province', 'like', "%{$province}%");
             });
         }
 
