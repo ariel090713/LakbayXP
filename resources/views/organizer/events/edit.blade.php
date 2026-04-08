@@ -68,6 +68,20 @@
                         <label class="block text-sm font-medium text-gray-700 mb-1">Meeting Time</label>
                         <input type="text" name="meeting_time" value="{{ old('meeting_time', $event->meeting_time) }}" placeholder="e.g. 5:00 AM" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
                     </div>
+                </div>
+                <!-- Meeting Point Map -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">📍 Pin Meeting Location <span class="text-gray-400">(click map to set)</span></label>
+                    <div id="meeting-map" class="w-full h-64 rounded-xl border border-gray-200 overflow-hidden"></div>
+                    <input type="hidden" name="meeting_lat" id="meeting_lat" value="{{ old('meeting_lat', $event->meeting_lat) }}">
+                    <input type="hidden" name="meeting_lng" id="meeting_lng" value="{{ old('meeting_lng', $event->meeting_lng) }}">
+                    <div class="text-xs text-gray-400 mt-1" id="meeting-coords">
+                        @if($event->meeting_lat)📍 {{ number_format($event->meeting_lat, 4) }}, {{ number_format($event->meeting_lng, 4) }}@else Click the map to pin the meeting location @endif
+                    </div>
+                </div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Meeting Time</label>
+                        <input type="text" name="meeting_time" value="{{ old('meeting_time', $event->meeting_time) }}" placeholder="e.g. 5:00 AM" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                    </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Fee (₱)</label>
                         <input type="number" name="fee" value="{{ old('fee', $event->fee) }}" min="0" step="0.01" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
@@ -221,6 +235,27 @@
         } else {
             addRuleRow();
         }
+
+        // Meeting point map
+        const initLat = {{ $event->meeting_lat ?? 12.8797 }};
+        const initLng = {{ $event->meeting_lng ?? 121.7740 }};
+        const initZoom = {{ $event->meeting_lat ? 13 : 6 }};
+        const meetingMap = L.map('meeting-map').setView([initLat, initLng], initZoom);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(meetingMap);
+        let meetingMarker = null;
+
+        @if($event->meeting_lat)
+            meetingMarker = L.marker([{{ $event->meeting_lat }}, {{ $event->meeting_lng }}]).addTo(meetingMap);
+        @endif
+
+        meetingMap.on('click', function(e) {
+            const { lat, lng } = e.latlng;
+            document.getElementById('meeting_lat').value = lat.toFixed(7);
+            document.getElementById('meeting_lng').value = lng.toFixed(7);
+            document.getElementById('meeting-coords').textContent = `📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+            if (meetingMarker) meetingMap.removeLayer(meetingMarker);
+            meetingMarker = L.marker([lat, lng]).addTo(meetingMap);
+        });
 
         function showModal(id) { document.getElementById(id).classList.remove('hidden'); document.getElementById(id).classList.add('flex'); }
         function hideModal(id) { document.getElementById(id).classList.add('hidden'); document.getElementById(id).classList.remove('flex'); }
