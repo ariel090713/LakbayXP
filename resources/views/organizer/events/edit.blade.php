@@ -71,12 +71,17 @@
                 </div>
                 <!-- Meeting Point Map -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">📍 Pin Meeting Location <span class="text-gray-400">(click map to set)</span></label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">📍 Pin Meeting Location</label>
+                    <div class="flex gap-2 mb-2">
+                        <input type="text" id="map-search" placeholder="Search location..." class="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm" />
+                        <button type="button" onclick="searchLocation()" class="px-4 py-2 rounded-lg bg-gray-100 text-sm font-medium hover:bg-gray-200">Search</button>
+                        <button type="button" onclick="goToMyLocation()" class="px-4 py-2 rounded-lg text-sm font-medium text-white" style="background: linear-gradient(135deg, #059669, #0891b2);">📍 My Location</button>
+                    </div>
                     <div id="meeting-map" class="w-full h-64 rounded-xl border border-gray-200 overflow-hidden"></div>
                     <input type="hidden" name="meeting_lat" id="meeting_lat" value="{{ old('meeting_lat', $event->meeting_lat) }}">
                     <input type="hidden" name="meeting_lng" id="meeting_lng" value="{{ old('meeting_lng', $event->meeting_lng) }}">
                     <div class="text-xs text-gray-400 mt-1" id="meeting-coords">
-                        @if($event->meeting_lat)📍 {{ number_format($event->meeting_lat, 4) }}, {{ number_format($event->meeting_lng, 4) }}@else Click the map to pin the meeting location @endif
+                        @if($event->meeting_lat)📍 {{ number_format($event->meeting_lat, 4) }}, {{ number_format($event->meeting_lng, 4) }}@else Click the map or search to pin the meeting location @endif
                     </div>
                 </div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Meeting Time</label>
@@ -236,26 +241,65 @@
             addRuleRow();
         }
 
-        // Meeting point map
+        // Meeting point map — Google Maps
+        const mapDiv = document.getElementById('meeting-map');
         const initLat = {{ $event->meeting_lat ?? 12.8797 }};
         const initLng = {{ $event->meeting_lng ?? 121.7740 }};
-        const initZoom = {{ $event->meeting_lat ? 13 : 6 }};
-        const meetingMap = L.map('meeting-map').setView([initLat, initLng], initZoom);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(meetingMap);
-        let meetingMarker = null;
+        const initZoom = {{ $event->meeting_lat ? 15 : 6 }};
+        const map = new google.maps.Map(mapDiv, { center: { lat: initLat, lng: initLng }, zoom: initZoom, mapTypeControl: false, streetViewControl: false });
+        let marker = null;
 
-        @if($event->meeting_lat)
-            meetingMarker = L.marker([{{ $event->meeting_lat }}, {{ $event->meeting_lng }}]).addTo(meetingMap);
+        const searchInput = document.getElementById('map-search');
+        const searchBox = new google.maps.places.SearchBox(searchInput);
+        searchBox.addListener('places_changed', function() {
+            const places = searchBox.getPlaces();
+            if (!places.length) return;
+            const place = places[0];
+            if (!place.geometry) return;
+            const lat = place.geometry.location.lat(), lng = place.geometry.location.lng();
+            map.setCenter({ lat, lng });
+            map.setZoom(16);
+            setPin(lat, lng);
+        });
+
+        @if(!$event->meeting_lat)
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(pos) {
+                map.setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                map.setZoom(14);
+            });
+        }
         @endif
 
-        meetingMap.on('click', function(e) {
-            const { lat, lng } = e.latlng;
+        @if($event->meeting_lat)
+        setPin({{ $event->meeting_lat }}, {{ $event->meeting_lng }});
+        @endif
+
+        function setPin(lat, lng) {
             document.getElementById('meeting_lat').value = lat.toFixed(7);
             document.getElementById('meeting_lng').value = lng.toFixed(7);
             document.getElementById('meeting-coords').textContent = `📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-            if (meetingMarker) meetingMap.removeLayer(meetingMarker);
-            meetingMarker = L.marker([lat, lng]).addTo(meetingMap);
-        });
+            if (marker) marker.setMap(null);
+            marker = new google.maps.Marker({ position: { lat, lng }, map, draggable: true });
+            marker.addListener('dragend', function() {
+                const pos = marker.getPosition();
+                setPin(pos.lat(), pos.lng());
+            });
+        }
+
+        map.addListener('click', function(e) { setPin(e.latLng.lat(), e.latLng.lng()); });
+
+        window.goToMyLocation = function() {
+            if (!navigator.geolocation) return alert('Geolocation not supported');
+            navigator.geolocation.getCurrentPosition(function(pos) {
+                const lat = pos.coords.latitude, lng = pos.coords.longitude;
+                map.setCenter({ lat, lng });
+                map.setZoom(16);
+                setPin(lat, lng);
+            });
+        };
+
+        window.searchLocation = function() {};
 
         function showModal(id) { document.getElementById(id).classList.remove('hidden'); document.getElementById(id).classList.add('flex'); }
         function hideModal(id) { document.getElementById(id).classList.add('hidden'); document.getElementById(id).classList.remove('flex'); }

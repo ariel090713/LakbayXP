@@ -70,11 +70,16 @@
                 </div>
                 <!-- Meeting Point Map -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">📍 Pin Meeting Location <span class="text-gray-400">(click map to set)</span></label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">📍 Pin Meeting Location</label>
+                    <div class="flex gap-2 mb-2">
+                        <input type="text" id="map-search" placeholder="Search location..." class="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm" />
+                        <button type="button" onclick="searchLocation()" class="px-4 py-2 rounded-lg bg-gray-100 text-sm font-medium hover:bg-gray-200">Search</button>
+                        <button type="button" onclick="goToMyLocation()" class="px-4 py-2 rounded-lg text-sm font-medium text-white" style="background: linear-gradient(135deg, #059669, #0891b2);">📍 My Location</button>
+                    </div>
                     <div id="meeting-map" class="w-full h-64 rounded-xl border border-gray-200 overflow-hidden"></div>
                     <input type="hidden" name="meeting_lat" id="meeting_lat" value="{{ old('meeting_lat') }}">
                     <input type="hidden" name="meeting_lng" id="meeting_lng" value="{{ old('meeting_lng') }}">
-                    <div class="text-xs text-gray-400 mt-1" id="meeting-coords">Click the map to pin the meeting location</div>
+                    <div class="text-xs text-gray-400 mt-1" id="meeting-coords">Click the map or search to pin the meeting location</div>
                 </div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Meeting Time</label>
                         <input type="text" name="meeting_time" value="{{ old('meeting_time') }}" placeholder="e.g. 5:00 AM" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
@@ -232,27 +237,70 @@
         addItineraryRow();
         addRuleRow();
 
-        // Meeting point map
-        const meetingMap = L.map('meeting-map').setView([12.8797, 121.7740], 6);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(meetingMap);
-        let meetingMarker = null;
+        // Meeting point map — Google Maps
+        const mapDiv = document.getElementById('meeting-map');
+        const defaultLat = 12.8797, defaultLng = 121.7740;
+        const map = new google.maps.Map(mapDiv, { center: { lat: defaultLat, lng: defaultLng }, zoom: 6, mapTypeControl: false, streetViewControl: false });
+        let marker = null;
 
-        const savedLat = document.getElementById('meeting_lat').value;
-        const savedLng = document.getElementById('meeting_lng').value;
-        if (savedLat && savedLng) {
-            meetingMarker = L.marker([savedLat, savedLng]).addTo(meetingMap);
-            meetingMap.setView([savedLat, savedLng], 13);
-            document.getElementById('meeting-coords').textContent = `📍 ${parseFloat(savedLat).toFixed(4)}, ${parseFloat(savedLng).toFixed(4)}`;
+        // Search box
+        const searchInput = document.getElementById('map-search');
+        const searchBox = new google.maps.places.SearchBox(searchInput);
+        searchBox.addListener('places_changed', function() {
+            const places = searchBox.getPlaces();
+            if (!places.length) return;
+            const place = places[0];
+            if (!place.geometry) return;
+            const lat = place.geometry.location.lat(), lng = place.geometry.location.lng();
+            map.setCenter({ lat, lng });
+            map.setZoom(16);
+            setPin(lat, lng);
+        });
+
+        // Auto-zoom to current location
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(pos) {
+                if (!document.getElementById('meeting_lat').value) {
+                    map.setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                    map.setZoom(14);
+                }
+            });
         }
 
-        meetingMap.on('click', function(e) {
-            const { lat, lng } = e.latlng;
+        // Load saved pin
+        const savedLat = parseFloat(document.getElementById('meeting_lat').value);
+        const savedLng = parseFloat(document.getElementById('meeting_lng').value);
+        if (savedLat && savedLng) {
+            map.setCenter({ lat: savedLat, lng: savedLng });
+            map.setZoom(15);
+            setPin(savedLat, savedLng);
+        }
+
+        function setPin(lat, lng) {
             document.getElementById('meeting_lat').value = lat.toFixed(7);
             document.getElementById('meeting_lng').value = lng.toFixed(7);
             document.getElementById('meeting-coords').textContent = `📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-            if (meetingMarker) meetingMap.removeLayer(meetingMarker);
-            meetingMarker = L.marker([lat, lng]).addTo(meetingMap);
-        });
+            if (marker) marker.setMap(null);
+            marker = new google.maps.Marker({ position: { lat, lng }, map, draggable: true });
+            marker.addListener('dragend', function() {
+                const pos = marker.getPosition();
+                setPin(pos.lat(), pos.lng());
+            });
+        }
+
+        map.addListener('click', function(e) { setPin(e.latLng.lat(), e.latLng.lng()); });
+
+        window.goToMyLocation = function() {
+            if (!navigator.geolocation) return alert('Geolocation not supported');
+            navigator.geolocation.getCurrentPosition(function(pos) {
+                const lat = pos.coords.latitude, lng = pos.coords.longitude;
+                map.setCenter({ lat, lng });
+                map.setZoom(16);
+                setPin(lat, lng);
+            });
+        };
+
+        window.searchLocation = function() {}; // handled by SearchBox
 
         function showModal(id) { document.getElementById(id).classList.remove('hidden'); document.getElementById(id).classList.add('flex'); }
         function hideModal(id) { document.getElementById(id).classList.add('hidden'); document.getElementById(id).classList.remove('flex'); }
