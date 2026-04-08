@@ -93,16 +93,38 @@ class EventController extends Controller
             $query->where('status', EventStatus::Published);
         }
 
+        // Near me (by meeting point coordinates)
+        $isNearMe = false;
+        if ($request->filled('lat') && $request->filled('lng')) {
+            $lat = (float) $request->input('lat');
+            $lng = (float) $request->input('lng');
+            $radius = (int) $request->input('radius', 100);
+            $isNearMe = true;
+
+            $query->whereNotNull('meeting_lat')->whereNotNull('meeting_lng');
+            $query->selectRaw('events.*, (
+                6371 * acos(
+                    cos(radians(?)) * cos(radians(meeting_lat)) *
+                    cos(radians(meeting_lng) - radians(?)) +
+                    sin(radians(?)) * sin(radians(meeting_lat))
+                )
+            ) AS distance_km', [$lat, $lng, $lat]);
+            $query->havingRaw('distance_km <= ?', [$radius]);
+            $query->orderBy('distance_km');
+        }
+
         // Sort
-        $sort = $request->input('sort', 'date');
-        match ($sort) {
-            'date' => $query->orderBy('event_date'),
-            'fee_low' => $query->orderBy('fee'),
-            'fee_high' => $query->orderByDesc('fee'),
-            'newest' => $query->orderByDesc('created_at'),
-            'popular' => $query->withCount('bookings')->orderByDesc('bookings_count'),
-            default => $query->orderBy('event_date'),
-        };
+        if (!$isNearMe) {
+            $sort = $request->input('sort', 'date');
+            match ($sort) {
+                'date' => $query->orderBy('event_date'),
+                'fee_low' => $query->orderBy('fee'),
+                'fee_high' => $query->orderByDesc('fee'),
+                'newest' => $query->orderByDesc('created_at'),
+                'popular' => $query->withCount('bookings')->orderByDesc('bookings_count'),
+                default => $query->orderBy('event_date'),
+            };
+        }
 
         $events = $query->paginate($request->input('per_page', 15));
 

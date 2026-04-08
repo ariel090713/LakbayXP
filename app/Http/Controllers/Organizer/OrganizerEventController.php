@@ -60,6 +60,8 @@ class OrganizerEventController extends Controller
             'description' => ['nullable', 'string'],
             'meeting_place' => ['nullable', 'string', 'max:255'],
             'meeting_time' => ['nullable', 'string', 'max:50'],
+            'meeting_lat' => ['nullable', 'numeric', 'between:-90,90'],
+            'meeting_lng' => ['nullable', 'numeric', 'between:-180,180'],
             'fee' => ['nullable', 'numeric', 'min:0'],
             'max_slots' => ['required', 'integer', 'min:1'],
             'auto_approve_bookings' => ['nullable', 'boolean'],
@@ -196,6 +198,8 @@ class OrganizerEventController extends Controller
             'description' => ['nullable', 'string'],
             'meeting_place' => ['nullable', 'string', 'max:255'],
             'meeting_time' => ['nullable', 'string', 'max:50'],
+            'meeting_lat' => ['nullable', 'numeric', 'between:-90,90'],
+            'meeting_lng' => ['nullable', 'numeric', 'between:-180,180'],
             'fee' => ['nullable', 'numeric', 'min:0'],
             'max_slots' => ['required', 'integer', 'min:1'],
             'auto_approve_bookings' => ['nullable', 'boolean'],
@@ -313,3 +317,4 @@ class OrganizerEventController extends Controller
         }
     }
 }
+

@@ -26,6 +26,8 @@ class Event extends Model
         'end_date',
         'meeting_place',
         'meeting_time',
+        'meeting_lat',
+        'meeting_lng',
         'fee',
         'max_slots',
         'difficulty',
