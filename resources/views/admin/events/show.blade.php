@@ -35,6 +35,13 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Main Content -->
             <div class="lg:col-span-2 space-y-6">
+                <!-- Cover Image -->
+                @if($event->cover_image_path)
+                    <div class="rounded-2xl overflow-hidden border border-gray-100">
+                        <img src="{{ $event->cover_image_url }}" alt="{{ $event->title }}" class="w-full h-64 object-cover" />
+                    </div>
+                @endif
+
                 <!-- Event Details -->
                 <div class="bg-white rounded-2xl border border-gray-100 p-6 space-y-5">
                     <div class="flex items-center justify-between">
@@ -151,6 +158,20 @@
 
                 <!-- Bookings -->
                 @if($event->bookings->count() > 0)
+
+                <!-- Gallery -->
+                @if($event->photos->count() > 0)
+                    <div class="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
+                        <h2 class="font-bold text-gray-900">📸 Gallery ({{ $event->photos->count() }})</h2>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            @foreach($event->photos as $photo)
+                                <img src="{{ $photo->photo_url }}" alt="" class="w-full h-32 rounded-xl object-cover border border-gray-100 cursor-pointer" onclick="openLightbox('{{ $photo->photo_url }}')" />
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                @if($event->bookings->count() > 0)
                     <div class="bg-white rounded-2xl border border-gray-100 p-6 space-y-3">
                         <h2 class="font-bold text-gray-900">🎫 Bookings ({{ $event->bookings->count() }})</h2>
                         @php
@@ -256,6 +277,10 @@
                             <span class="text-gray-400">Bookings</span>
                             <span class="text-gray-900 font-medium">{{ $event->bookings->count() }}</span>
                         </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Photos</span>
+                            <span class="text-gray-900 font-medium">{{ $event->photos->count() }}</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -298,8 +323,15 @@
         </div>
     </div>
 
+    <!-- Lightbox -->
+    <div id="lightbox" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm" onclick="closeLightbox()">
+        <img id="lightbox-img" src="" alt="" class="max-h-[85vh] max-w-[90vw] rounded-2xl object-contain" />
+    </div>
+
     <script>
         function showModal(id) { document.getElementById(id).classList.remove('hidden'); document.getElementById(id).classList.add('flex'); }
         function hideModal(id) { document.getElementById(id).classList.add('hidden'); document.getElementById(id).classList.remove('flex'); }
+        function openLightbox(url) { document.getElementById('lightbox-img').src = url; document.getElementById('lightbox').classList.remove('hidden'); document.getElementById('lightbox').classList.add('flex'); }
+        function closeLightbox() { document.getElementById('lightbox').classList.add('hidden'); document.getElementById('lightbox').classList.remove('flex'); }
     </script>
 </x-layouts.admin>

@@ -37,7 +37,7 @@ class AdminEventController extends Controller
 
     public function show(Event $event): View
     {
-        $event->load(['organizer', 'place', 'itinerary.place', 'rules', 'bookings.user']);
+        $event->load(['organizer', 'place', 'itinerary.place', 'rules', 'bookings.user', 'photos']);
 
         return view('admin.events.show', compact('event'));
     }

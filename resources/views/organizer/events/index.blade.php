@@ -39,8 +39,17 @@
                     @forelse($events as $event)
                         <tr class="hover:bg-gray-50/50">
                             <td class="px-4 py-3">
-                                <div class="font-semibold text-sm text-gray-900">{{ $event->title }}</div>
-                                <div class="text-xs text-gray-400">{{ $event->slug }}</div>
+                                <div class="flex items-center gap-3">
+                                    @if($event->cover_image_path)
+                                        <img src="{{ $event->cover_image_url }}" alt="" class="w-12 h-12 rounded-lg object-cover shrink-0" />
+                                    @else
+                                        <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-emerald-100 to-cyan-100 flex items-center justify-center text-lg shrink-0">📅</div>
+                                    @endif
+                                    <div>
+                                        <div class="font-semibold text-sm text-gray-900">{{ $event->title }}</div>
+                                        <div class="text-xs text-gray-400">{{ $event->slug }}</div>
+                                    </div>
+                                </div>
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-600">{{ $event->event_date->format('M d, Y') }}</td>
                             <td class="px-4 py-3">

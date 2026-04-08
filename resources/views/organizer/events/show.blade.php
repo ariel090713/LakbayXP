@@ -45,6 +45,13 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Event Details -->
             <div class="lg:col-span-2 space-y-6">
+                <!-- Cover Image -->
+                @if($event->cover_image_path)
+                    <div class="rounded-2xl overflow-hidden border border-gray-100">
+                        <img src="{{ $event->cover_image_url }}" alt="{{ $event->title }}" class="w-full h-64 object-cover" />
+                    </div>
+                @endif
+
                 <div class="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
                     <h2 class="font-bold text-gray-900">Event Details</h2>
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -121,6 +128,20 @@
                                 </div>
                             </div>
                         @endforeach
+                    </div>
+                @endif
+
+                <!-- Gallery -->
+                @if($event->photos->count() > 0)
+                    <div class="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
+                        <h2 class="font-bold text-gray-900">📸 Gallery ({{ $event->photos->count() }})</h2>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            @foreach($event->photos as $photo)
+                                <div class="relative group">
+                                    <img src="{{ $photo->photo_url }}" alt="" class="w-full h-32 rounded-xl object-cover border border-gray-100 cursor-pointer" onclick="openLightbox('{{ $photo->photo_url }}')" />
+                                </div>
+                            @endforeach
+                        </div>
                     </div>
                 @endif
             </div>
@@ -202,8 +223,15 @@
         </div>
     </div>
 
+    <!-- Lightbox -->
+    <div id="lightbox" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm" onclick="closeLightbox()">
+        <img id="lightbox-img" src="" alt="" class="max-h-[85vh] max-w-[90vw] rounded-2xl object-contain" />
+    </div>
+
     <script>
         function showModal(id) { document.getElementById(id).classList.remove('hidden'); document.getElementById(id).classList.add('flex'); }
         function hideModal(id) { document.getElementById(id).classList.add('hidden'); document.getElementById(id).classList.remove('flex'); }
+        function openLightbox(url) { document.getElementById('lightbox-img').src = url; document.getElementById('lightbox').classList.remove('hidden'); document.getElementById('lightbox').classList.add('flex'); }
+        function closeLightbox() { document.getElementById('lightbox').classList.add('hidden'); document.getElementById('lightbox').classList.remove('flex'); }
     </script>
 </x-layouts.organizer>

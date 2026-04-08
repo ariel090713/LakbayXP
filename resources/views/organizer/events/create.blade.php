@@ -18,7 +18,7 @@
             <input type="text" id="map-search" placeholder="Search location..." class="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm" />
         </div>
 
-        <form id="event-form" method="POST" action="{{ route('organizer.events.store') }}" class="space-y-6" onsubmit="return false;">
+        <form id="event-form" method="POST" action="{{ route('organizer.events.store') }}" enctype="multipart/form-data" class="space-y-6" onsubmit="return false;">
             @csrf
 
             <!-- Basic Info -->
@@ -37,6 +37,23 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
                     <textarea name="description" rows="3" placeholder="Describe the adventure..." class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">{{ old('description') }}</textarea>
+                </div>
+            </div>
+
+            <!-- Schedule & Logistics -->
+            <div class="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
+                <h2 class="font-bold text-gray-900">🖼️ Images</h2>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Cover Image</label>
+                    <input type="file" name="cover_image" accept="image/*" onchange="previewImage(this, 'cover-preview')" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer" />
+                    <img id="cover-preview" class="hidden mt-2 h-32 w-auto rounded-xl object-cover" alt="Preview" />
+                    <p class="text-xs text-gray-400 mt-1">Main event image. Max 10MB.</p>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Gallery Photos</label>
+                    <input type="file" name="gallery[]" accept="image/*" multiple onchange="previewGallery(this)" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer" />
+                    <div id="gallery-preview" class="flex flex-wrap gap-2 mt-2"></div>
+                    <p class="text-xs text-gray-400 mt-1">Up to 10 photos. Max 10MB each.</p>
                 </div>
             </div>
 
@@ -325,5 +342,31 @@
 
         function showModal(id) { document.getElementById(id).classList.remove('hidden'); document.getElementById(id).classList.add('flex'); }
         function hideModal(id) { document.getElementById(id).classList.add('hidden'); document.getElementById(id).classList.remove('flex'); }
+
+        function previewImage(input, previewId) {
+            const preview = document.getElementById(previewId);
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = e => { preview.src = e.target.result; preview.classList.remove('hidden'); };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function previewGallery(input) {
+            const container = document.getElementById('gallery-preview');
+            container.innerHTML = '';
+            if (input.files) {
+                Array.from(input.files).forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.className = 'h-20 w-20 rounded-lg object-cover border border-gray-200';
+                        container.appendChild(img);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+        }
     </script>
 </x-layouts.organizer>

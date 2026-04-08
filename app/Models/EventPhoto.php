@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 
 class EventPhoto extends Model
 {
@@ -16,6 +17,13 @@ class EventPhoto extends Model
         'photo_path',
         'caption',
     ];
+
+    protected $appends = ['photo_url'];
+
+    public function getPhotoUrlAttribute(): ?string
+    {
+        return $this->photo_path ? Storage::disk('s3')->url($this->photo_path) : null;
+    }
 
     public function event(): BelongsTo
     {

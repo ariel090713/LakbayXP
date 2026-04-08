@@ -59,8 +59,17 @@
                     @forelse($events as $event)
                         <tr class="hover:bg-gray-50/50">
                             <td class="px-4 py-3">
-                                <a href="{{ route('admin.events.show', $event) }}" class="font-semibold text-sm text-gray-900 hover:text-emerald-700 transition-colors">{{ $event->title }}</a>
-                                <div class="text-xs text-gray-400">₱{{ number_format($event->fee, 0) }}</div>
+                                <div class="flex items-center gap-3">
+                                    @if($event->cover_image_path)
+                                        <img src="{{ $event->cover_image_url }}" alt="" class="w-10 h-10 rounded-lg object-cover shrink-0" />
+                                    @else
+                                        <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-100 to-cyan-100 flex items-center justify-center text-base shrink-0">📅</div>
+                                    @endif
+                                    <div>
+                                        <a href="{{ route('admin.events.show', $event) }}" class="font-semibold text-sm text-gray-900 hover:text-emerald-700 transition-colors">{{ $event->title }}</a>
+                                        <div class="text-xs text-gray-400">₱{{ number_format($event->fee, 0) }}</div>
+                                    </div>
+                                </div>
                             </td>
                             <td class="px-4 py-3">
                                 <div class="flex items-center gap-2">

@@ -10,10 +10,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Event extends Model
 {
     use HasFactory;
+
+    protected $appends = ['cover_image_url'];
 
     protected $fillable = [
         'organizer_id',
@@ -21,6 +24,7 @@ class Event extends Model
         'title',
         'slug',
         'description',
+        'cover_image_path',
         'category',
         'event_date',
         'end_date',
@@ -82,6 +86,11 @@ class Event extends Model
     public function photos(): HasMany
     {
         return $this->hasMany(EventPhoto::class);
+    }
+
+    public function getCoverImageUrlAttribute(): ?string
+    {
+        return $this->cover_image_path ? Storage::disk('s3')->url($this->cover_image_path) : null;
     }
 
     public function availableSlots(): int

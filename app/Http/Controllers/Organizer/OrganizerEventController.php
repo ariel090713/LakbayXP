@@ -5,12 +5,14 @@ namespace App\Http\Controllers\Organizer;
 use App\Enums\PlaceCategory;
 use App\Http\Controllers\Controller;
 use App\Models\Event;
+use App\Models\EventPhoto;
 use App\Models\EventPlace;
 use App\Models\EventRule;
 use App\Models\Place;
 use App\Services\EventService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\Enum;
 use Illuminate\View\View;
 
@@ -58,6 +60,9 @@ class OrganizerEventController extends Controller
             'event_date' => ['required', 'date', 'after:today'],
             'end_date' => ['nullable', 'date', 'after_or_equal:event_date'],
             'description' => ['nullable', 'string'],
+            'cover_image' => ['nullable', 'image', 'max:10240'],
+            'gallery' => ['nullable', 'array', 'max:10'],
+            'gallery.*' => ['image', 'max:10240'],
             'meeting_place' => ['nullable', 'string', 'max:255'],
             'meeting_time' => ['nullable', 'string', 'max:50'],
             'meeting_lat' => ['nullable', 'numeric', 'between:-90,90'],
@@ -76,6 +81,11 @@ class OrganizerEventController extends Controller
             'rule_types' => ['nullable', 'array'],
             'rule_contents' => ['nullable', 'array'],
         ]);
+
+        // Handle cover image upload
+        if ($request->hasFile('cover_image')) {
+            $validated['cover_image_path'] = Storage::disk('s3')->putFile('event-covers', $request->file('cover_image'));
+        }
 
         $event = $this->eventService->create($request->user(), $validated);
 
@@ -125,6 +135,18 @@ class OrganizerEventController extends Controller
             }
         }
 
+        // Save gallery photos
+        if ($request->hasFile('gallery')) {
+            foreach ($request->file('gallery') as $photo) {
+                $path = Storage::disk('s3')->putFile('event-photos', $photo);
+                EventPhoto::create([
+                    'event_id' => $event->id,
+                    'uploaded_by' => $request->user()->id,
+                    'photo_path' => $path,
+                ]);
+            }
+        }
+
         return redirect()->route('organizer.events.index')
             ->with('success', 'Event created successfully.');
     }
@@ -136,7 +158,7 @@ class OrganizerEventController extends Controller
     {
         $this->authorizeOrganizer($event);
 
-        $event->load(['place', 'bookings.user', 'itinerary.place', 'rules']);
+        $event->load(['place', 'bookings.user', 'itinerary.place', 'rules', 'photos']);
 
         return view('organizer.events.show', compact('event'));
     }
@@ -155,7 +177,7 @@ class OrganizerEventController extends Controller
         }
 
         $places = Place::where('is_active', true)->orderBy('name')->get();
-        $event->load(['itinerary.place', 'rules']);
+        $event->load(['itinerary.place', 'rules', 'photos']);
 
         $itineraryData = $event->itinerary->map(function ($s) {
             return [
@@ -196,6 +218,11 @@ class OrganizerEventController extends Controller
             'event_date' => ['required', 'date', 'after_or_equal:today'],
             'end_date' => ['nullable', 'date', 'after_or_equal:event_date'],
             'description' => ['nullable', 'string'],
+            'cover_image' => ['nullable', 'image', 'max:10240'],
+            'gallery' => ['nullable', 'array', 'max:10'],
+            'gallery.*' => ['image', 'max:10240'],
+            'remove_photos' => ['nullable', 'array'],
+            'remove_photos.*' => ['integer', 'exists:event_photos,id'],
             'meeting_place' => ['nullable', 'string', 'max:255'],
             'meeting_time' => ['nullable', 'string', 'max:50'],
             'meeting_lat' => ['nullable', 'numeric', 'between:-90,90'],
@@ -215,7 +242,17 @@ class OrganizerEventController extends Controller
             'rule_contents' => ['nullable', 'array'],
         ]);
 
-        unset($validated['itinerary_place_ids'], $validated['itinerary_custom_names'], $validated['itinerary_custom_locations'],
+        // Handle cover image upload
+        if ($request->hasFile('cover_image')) {
+            // Delete old cover
+            if ($event->cover_image_path) {
+                Storage::disk('s3')->delete($event->cover_image_path);
+            }
+            $validated['cover_image_path'] = Storage::disk('s3')->putFile('event-covers', $request->file('cover_image'));
+        }
+
+        unset($validated['cover_image'], $validated['gallery'], $validated['remove_photos'],
+              $validated['itinerary_place_ids'], $validated['itinerary_custom_names'], $validated['itinerary_custom_locations'],
               $validated['itinerary_days'], $validated['itinerary_activities'], $validated['itinerary_times'], $validated['itinerary_notes'],
               $validated['rule_types'], $validated['rule_contents']);
 
@@ -261,6 +298,29 @@ class OrganizerEventController extends Controller
                     'rule_type' => $type,
                     'content' => $content,
                     'sort_order' => $i + 1,
+                ]);
+            }
+        }
+
+        // Remove selected gallery photos
+        if ($request->has('remove_photos')) {
+            $photosToRemove = EventPhoto::where('event_id', $event->id)
+                ->whereIn('id', $request->input('remove_photos'))
+                ->get();
+            foreach ($photosToRemove as $photo) {
+                Storage::disk('s3')->delete($photo->photo_path);
+                $photo->delete();
+            }
+        }
+
+        // Add new gallery photos
+        if ($request->hasFile('gallery')) {
+            foreach ($request->file('gallery') as $photo) {
+                $path = Storage::disk('s3')->putFile('event-photos', $photo);
+                EventPhoto::create([
+                    'event_id' => $event->id,
+                    'uploaded_by' => $request->user()->id,
+                    'photo_path' => $path,
                 ]);
             }
         }
