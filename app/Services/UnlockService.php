@@ -68,7 +68,7 @@ class UnlockService
 
         // Award XP from place (for leveling)
         if ($place->xp_reward > 0) {
-            $this->xpService->awardXp($user, $place->xp_reward);
+            $this->xpService->awardPlaceXp($user, $place, $event);
         }
 
         // Trigger achievement recalculation (badges give points for rewards)

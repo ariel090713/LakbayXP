@@ -56,6 +56,14 @@ class AuthController extends Controller
                         'google_id' => $googleId,
                         'role' => UserRole::User,
                     ]);
+
+                    // Award welcome badge (ID 1) + welcome XP
+                    try {
+                        $welcomeBadge = \App\Models\Badge::find(1);
+                        app(\App\Services\XpService::class)->awardWelcomeBonus($user, $welcomeBadge);
+                    } catch (\Throwable $e) {
+                        \Log::warning('Welcome bonus failed', ['error' => $e->getMessage()]);
+                    }
                 }
             }
 

@@ -165,4 +165,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(RewardRedemption::class);
     }
+
+    public function xpHistory(): HasMany
+    {
+        return $this->hasMany(XpHistory::class);
+    }
 }

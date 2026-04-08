@@ -151,6 +151,33 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/bookings/{booking}/reject', [BookingController::class, 'reject']);
     });
 
+    // Admin API endpoints
+    Route::middleware('role:admin')->group(function () {
+        Route::post('/admin/grant-xp', function (Request $request) {
+            $request->validate([
+                'user_id' => ['required', 'exists:users,id'],
+                'amount' => ['required', 'integer', 'min:1', 'max:10000'],
+                'description' => ['required', 'string', 'max:255'],
+                'category' => ['nullable', 'string'],
+            ]);
+
+            $user = \App\Models\User::findOrFail($request->input('user_id'));
+            $xpService = app(\App\Services\XpService::class);
+            $result = $xpService->adminGrantXp(
+                admin: $request->user(),
+                user: $user,
+                amount: $request->input('amount'),
+                description: $request->input('description'),
+                category: $request->input('category'),
+            );
+
+            return response()->json([
+                'message' => "Granted {$request->input('amount')} XP to {$user->name}.",
+                'result' => $result,
+            ]);
+        });
+    });
+
     // Places & Unlocks
     Route::get('/places', [PlaceController::class, 'index']);
     Route::get('/places/{place:slug}', [PlaceController::class, 'show']);
@@ -186,6 +213,45 @@ Route::middleware('auth:sanctum')->group(function () {
     // Achievements & Leaderboard
     Route::get('/leaderboard', [LeaderboardController::class, 'index']);
     Route::get('/badges', [BadgeController::class, 'index']);
+
+    // XP History & Category Leaderboard
+    Route::get('/xp-history', function (Request $request) {
+        $xpService = app(\App\Services\XpService::class);
+        return response()->json($xpService->getHistory($request->user(), $request->input('per_page', 15)));
+    });
+
+    Route::get('/xp-categories', function (Request $request) {
+        $xpService = app(\App\Services\XpService::class);
+        return response()->json(['data' => $xpService->getCategoryXp($request->user())]);
+    });
+
+    Route::get('/leaderboard/category/{category}', function (Request $request, string $category) {
+        $users = \App\Models\XpHistory::where('category', $category)
+            ->selectRaw('user_id, SUM(amount) as category_xp')
+            ->groupBy('user_id')
+            ->orderByDesc('category_xp')
+            ->paginate($request->input('per_page', 20));
+
+        $userIds = $users->pluck('user_id');
+        $userMap = \App\Models\User::whereIn('id', $userIds)
+            ->get()
+            ->keyBy('id');
+
+        $users->getCollection()->transform(function ($row) use ($userMap) {
+            $user = $userMap[$row->user_id] ?? null;
+            return [
+                'user_id' => $row->user_id,
+                'category_xp' => (int) $row->category_xp,
+                'name' => $user?->name,
+                'username' => $user?->username,
+                'avatar_url' => $user?->avatar_url,
+                'level' => $user?->level ?? 1,
+                'total_xp' => $user?->xp ?? 0,
+            ];
+        });
+
+        return response()->json($users);
+    });
 
     // Rewards & Redemptions
     Route::get('/rewards', [RewardController::class, 'index']);

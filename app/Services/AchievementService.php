@@ -58,6 +58,11 @@ class AchievementService
                     $user->increment('total_points', $badge->points);
                     $user->increment('available_points', $badge->points);
                 }
+
+                // Award XP from badge (with history)
+                if (($badge->xp_reward ?? 0) > 0) {
+                    $this->xpService->awardBadgeXp($user, $badge);
+                }
             }
         }
 
