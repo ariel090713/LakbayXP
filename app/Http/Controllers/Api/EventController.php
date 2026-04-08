@@ -23,8 +23,9 @@ class EventController extends Controller
     {
         $query = Event::query()
             ->whereIn('status', [EventStatus::Published, EventStatus::Full])
-            ->with(['place', 'organizer']);
+            ->with(['place', 'organizer:id,name,username,avatar_path,is_verified_organizer']);
 
+        // Category
         if ($request->filled('category')) {
             $category = PlaceCategory::tryFrom($request->input('category'));
             if ($category) {
@@ -32,15 +33,73 @@ class EventController extends Controller
             }
         }
 
+        // Place
         if ($request->filled('place')) {
             $query->where('place_id', $request->input('place'));
         }
 
+        // Search
         if ($request->filled('search')) {
-            $query->where('title', 'like', '%' . $request->input('search') . '%');
+            $s = $request->input('search');
+            $query->where(function ($q) use ($s) {
+                $q->where('title', 'like', "%{$s}%")
+                  ->orWhere('description', 'like', "%{$s}%")
+                  ->orWhere('meeting_place', 'like', "%{$s}%");
+            });
         }
 
-        $events = $query->orderBy('event_date')->paginate(15);
+        // Region (via place relationship)
+        if ($request->filled('region')) {
+            $query->whereHas('place', function ($q) use ($request) {
+                $q->where('region', 'like', '%' . $request->input('region') . '%');
+            });
+        }
+
+        // Province (via place relationship)
+        if ($request->filled('province')) {
+            $query->whereHas('place', function ($q) use ($request) {
+                $q->where('province', 'like', '%' . $request->input('province') . '%');
+            });
+        }
+
+        // Difficulty
+        if ($request->filled('difficulty')) {
+            $query->where('difficulty', $request->input('difficulty'));
+        }
+
+        // Date range
+        if ($request->filled('date_from')) {
+            $query->where('event_date', '>=', $request->input('date_from'));
+        }
+        if ($request->filled('date_to')) {
+            $query->where('event_date', '<=', $request->input('date_to'));
+        }
+
+        // Fee range
+        if ($request->filled('fee_min')) {
+            $query->where('fee', '>=', (float) $request->input('fee_min'));
+        }
+        if ($request->filled('fee_max')) {
+            $query->where('fee', '<=', (float) $request->input('fee_max'));
+        }
+
+        // Has slots available
+        if ($request->boolean('available_only')) {
+            $query->where('status', EventStatus::Published);
+        }
+
+        // Sort
+        $sort = $request->input('sort', 'date');
+        match ($sort) {
+            'date' => $query->orderBy('event_date'),
+            'fee_low' => $query->orderBy('fee'),
+            'fee_high' => $query->orderByDesc('fee'),
+            'newest' => $query->orderByDesc('created_at'),
+            'popular' => $query->withCount('bookings')->orderByDesc('bookings_count'),
+            default => $query->orderBy('event_date'),
+        };
+
+        $events = $query->paginate($request->input('per_page', 15));
 
         return response()->json($events);
     }

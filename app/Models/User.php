@@ -63,6 +63,19 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+    protected $appends = ['avatar_url', 'cover_photo_url'];
+
+    public function getAvatarUrlAttribute(): ?string
+    {
+        return $this->avatar_path ? \Storage::disk('s3')->url($this->avatar_path) : null;
+    }
+
+    public function getCoverPhotoUrlAttribute(): ?string
+    {
+        $path = $this->cover_photo_path ?? null;
+        return $path ? \Storage::disk('s3')->url($path) : null;
+    }
+
     /**
      * Get the attributes that should be cast.
      *
