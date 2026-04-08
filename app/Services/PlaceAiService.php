@@ -13,14 +13,69 @@ use Illuminate\Support\Str;
 class PlaceAiService
 {
     private string $geminiKey;
+    private string $openaiKey;
     private string $unsplashKey;
     private string $pexelsKey;
 
     public function __construct()
     {
         $this->geminiKey = config('services.gemini.key', env('GEMINI_API_KEY', ''));
+        $this->openaiKey = env('OPENAI_API_KEY', '');
         $this->unsplashKey = config('services.unsplash.key', env('UNSPLASH_ACCESS_KEY', ''));
         $this->pexelsKey = config('services.pexels.key', env('PEXELS_API_KEY', ''));
+    }
+
+    /**
+     * Call AI — tries Gemini first, falls back to OpenAI.
+     */
+    private function callAi(string $prompt, float $temperature = 0.7, int $maxTokens = 4096): ?string
+    {
+        // Try Gemini first
+        if ($this->geminiKey) {
+            try {
+                $response = Http::timeout(60)->post(
+                    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$this->geminiKey}",
+                    [
+                        'contents' => [['parts' => [['text' => $prompt]]]],
+                        'generationConfig' => ['temperature' => $temperature, 'maxOutputTokens' => $maxTokens],
+                    ]
+                );
+
+                if ($response->successful()) {
+                    $text = $response->json('candidates.0.content.parts.0.text', '');
+                    if ($text) return $text;
+                }
+
+                Log::warning('Gemini failed, trying OpenAI', ['status' => $response->status()]);
+            } catch (\Throwable $e) {
+                Log::warning('Gemini error, trying OpenAI', ['error' => $e->getMessage()]);
+            }
+        }
+
+        // Fallback to OpenAI
+        if ($this->openaiKey) {
+            try {
+                $response = Http::timeout(60)
+                    ->withHeaders(['Authorization' => "Bearer {$this->openaiKey}"])
+                    ->post('https://api.openai.com/v1/chat/completions', [
+                        'model' => 'gpt-4o-mini',
+                        'messages' => [['role' => 'user', 'content' => $prompt]],
+                        'temperature' => $temperature,
+                        'max_tokens' => $maxTokens,
+                    ]);
+
+                if ($response->successful()) {
+                    return $response->json('choices.0.message.content', '');
+                }
+
+                Log::error('OpenAI also failed', ['status' => $response->status(), 'body' => $response->body()]);
+            } catch (\Throwable $e) {
+                Log::error('OpenAI error', ['error' => $e->getMessage()]);
+            }
+        }
+
+        Log::error('All AI providers failed');
+        return null;
     }
 
     /**
@@ -63,20 +118,9 @@ For each place return a JSON array with objects containing:
 Return ONLY valid JSON array, no markdown, no explanation.";
 
         try {
-            $response = Http::timeout(60)->post(
-                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$this->geminiKey}",
-                [
-                    'contents' => [['parts' => [['text' => $prompt]]]],
-                    'generationConfig' => ['temperature' => 0.7, 'maxOutputTokens' => 4096],
-                ]
-            );
+            $text = $this->callAi($prompt, 0.7, 4096);
+            if (!$text) return [];
 
-            if (!$response->successful()) {
-                Log::error('Gemini API failed', ['status' => $response->status(), 'body' => $response->body()]);
-                return [];
-            }
-
-            $text = $response->json('candidates.0.content.parts.0.text', '');
             // Clean markdown code blocks if present
             $text = preg_replace('/```json?\s*/', '', $text);
             $text = preg_replace('/```\s*/', '', $text);
@@ -84,13 +128,13 @@ Return ONLY valid JSON array, no markdown, no explanation.";
 
             $places = json_decode($text, true);
             if (!is_array($places)) {
-                Log::error('Gemini returned invalid JSON', ['text' => substr($text, 0, 500)]);
+                Log::error('AI returned invalid JSON', ['text' => substr($text, 0, 500)]);
                 return [];
             }
 
             return $places;
         } catch (\Throwable $e) {
-            Log::error('Gemini discover failed', ['error' => $e->getMessage()]);
+            Log::error('AI discover failed', ['error' => $e->getMessage()]);
             return [];
         }
     }
@@ -126,17 +170,9 @@ Return a JSON object with corrected/enhanced fields:
 Return ONLY valid JSON object, no markdown.";
 
         try {
-            $response = Http::timeout(30)->post(
-                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$this->geminiKey}",
-                [
-                    'contents' => [['parts' => [['text' => $prompt]]]],
-                    'generationConfig' => ['temperature' => 0.3, 'maxOutputTokens' => 1024],
-                ]
-            );
+            $text = $this->callAi($prompt, 0.3, 1024);
+            if (!$text) return false;
 
-            if (!$response->successful()) return false;
-
-            $text = $response->json('candidates.0.content.parts.0.text', '');
             $text = preg_replace('/```json?\s*/', '', $text);
             $text = preg_replace('/```\s*/', '', $text);
             $data = json_decode(trim($text), true);
