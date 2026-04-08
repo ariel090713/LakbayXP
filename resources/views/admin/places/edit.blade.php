@@ -48,7 +48,7 @@
                         <select name="region" id="region-select" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500">
                             <option value="">Select Region</option>
                             @foreach($regions as $r)
-                                <option value="{{ $r->name }}" {{ old('region', $place->region) === $r->name ? 'selected' : '' }} data-region-id="{{ $r->id }}">{{ $r->name }}</option>
+                                <option value="{{ $r->name }}" {{ (old('region', $place->region) === $r->name || str_contains($r->name, old('region', $place->region ?? ''))) ? 'selected' : '' }} data-region-id="{{ $r->id }}">{{ $r->name }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -172,7 +172,7 @@
                     const opt = document.createElement('option');
                     opt.value = p.name;
                     opt.textContent = p.name;
-                    if (p.name === currentProvince) opt.selected = true;
+                    if (p.name === currentProvince || p.name.toLowerCase() === currentProvince.toLowerCase()) opt.selected = true;
                     provinceSelect.appendChild(opt);
                 });
             }

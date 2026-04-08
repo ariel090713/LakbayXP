@@ -42,7 +42,7 @@ For each place return a JSON array with objects containing:
 - name: official place name (use the most commonly known name)
 - category: one of the categories above
 - description: Write a detailed, engaging 5-8 sentence description. Include: what makes it special, what visitors can expect, the landscape/scenery, best time to visit, any unique features or history. Write like a travel blog — informative but exciting.
-- region: Philippine region (e.g. Cordillera Administrative Region, Central Visayas, Davao Region)
+- region: Philippine region — must use the FULL official name from this list: National Capital Region (NCR), Cordillera Administrative Region (CAR), Region I — Ilocos Region, Region II — Cagayan Valley, Region III — Central Luzon, Region IV-A — CALABARZON, MIMAROPA Region, Region V — Bicol Region, Region VI — Western Visayas, Region VII — Central Visayas, Region VIII — Eastern Visayas, Region IX — Zamboanga Peninsula, Region X — Northern Mindanao, Region XI — Davao Region, Region XII — SOCCSKSARGEN, Region XIII — Caraga, Bangsamoro (BARMM)
 - province: Philippine province (exact name)
 - latitude: decimal (accurate to 4 decimal places, must be real coordinates)
 - longitude: decimal (accurate to 4 decimal places, must be real coordinates)
