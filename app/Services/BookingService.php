@@ -32,14 +32,38 @@ class BookingService
             throw new \InvalidArgumentException('Cannot book an event with a past date.');
         }
 
-        // Check for duplicate booking (pending or approved)
+        // Check for existing booking
         $existingBooking = Booking::where('event_id', $event->id)
             ->where('user_id', $user->id)
-            ->whereIn('status', [BookingStatus::Pending, BookingStatus::Approved])
-            ->exists();
+            ->first();
 
         if ($existingBooking) {
-            throw new \InvalidArgumentException('You already have an active booking for this event.');
+            if (in_array($existingBooking->status, [BookingStatus::Pending, BookingStatus::Approved])) {
+                throw new \InvalidArgumentException('You already have an active booking for this event.');
+            }
+
+            // Re-book: cancelled or rejected booking — reuse the row
+            $status = $event->auto_approve_bookings
+                ? BookingStatus::Approved
+                : BookingStatus::Pending;
+
+            $existingBooking->update([
+                'status' => $status,
+                'approved_at' => $status === BookingStatus::Approved ? now() : null,
+                'rejected_at' => null,
+            ]);
+
+            // Check if event is now full
+            $available = $event->max_slots - $event->bookings()
+                ->whereIn('status', [BookingStatus::Pending, BookingStatus::Approved])
+                ->count();
+            if ($available <= 0) {
+                $event->update(['status' => EventStatus::Full]);
+            }
+
+            $this->notificationService->notifyBookingCreated($existingBooking);
+
+            return $existingBooking;
         }
 
         $booking = null;
