@@ -68,7 +68,7 @@ class ExplorerController extends Controller
             $query->whereNotNull('latitude')->whereNotNull('longitude');
 
             // Haversine formula for distance in km
-            $query->selectRaw('*, (
+            $query->selectRaw('users.*, (
                 6371 * acos(
                     cos(radians(?)) * cos(radians(latitude)) *
                     cos(radians(longitude) - radians(?)) +

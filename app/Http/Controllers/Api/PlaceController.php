@@ -40,11 +40,14 @@ class PlaceController extends Controller
             $query->where('name', 'like', '%' . $request->input('search') . '%');
         }
 
+        $isNearMe = false;
+
         // Near me (Haversine)
         if ($request->filled('lat') && $request->filled('lng')) {
             $lat = (float) $request->input('lat');
             $lng = (float) $request->input('lng');
-            $radius = (int) $request->input('radius', 100); // default 100km
+            $radius = (int) $request->input('radius', 100);
+            $isNearMe = true;
 
             $query->whereNotNull('latitude')->whereNotNull('longitude');
             $query->selectRaw('places.*, (
@@ -56,11 +59,9 @@ class PlaceController extends Controller
             ) AS distance_km', [$lat, $lng, $lat]);
             $query->havingRaw('distance_km <= ?', [$radius]);
             $query->orderBy('distance_km');
-        } else {
-            $query->orderBy('name');
         }
 
-        // Sort
+        // Sort (secondary to near_me if both present)
         if ($request->filled('sort')) {
             match ($request->input('sort')) {
                 'popular' => $query->withCount('unlockedByUsers')->orderByDesc('unlocked_by_users_count'),
@@ -68,6 +69,8 @@ class PlaceController extends Controller
                 'newest' => $query->orderByDesc('created_at'),
                 default => null,
             };
+        } elseif (!$isNearMe) {
+            $query->orderBy('name');
         }
 
         $places = $query->paginate($request->input('per_page', 15));
