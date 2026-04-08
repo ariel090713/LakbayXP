@@ -13,7 +13,12 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('organizer.events.store') }}" class="space-y-6">
+        <!-- Map search outside form to prevent Google Maps SearchBox form injection issues -->
+        <div id="map-search-wrapper" class="hidden">
+            <input type="text" id="map-search" placeholder="Search location..." class="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm" />
+        </div>
+
+        <form id="event-form" method="POST" action="{{ route('organizer.events.store') }}" class="space-y-6" onsubmit="return false;">
             @csrf
 
             <!-- Basic Info -->
@@ -72,8 +77,7 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">📍 Pin Meeting Location</label>
                     <div class="flex gap-2 mb-2">
-                        <input type="text" id="map-search" placeholder="Search location..." class="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm" />
-                        <button type="button" onclick="searchLocation()" class="px-4 py-2 rounded-lg bg-gray-100 text-sm font-medium hover:bg-gray-200">Search</button>
+                        <div id="map-search-slot" class="flex-1"></div>
                         <button type="button" onclick="goToMyLocation()" class="px-4 py-2 rounded-lg text-sm font-medium text-white" style="background: linear-gradient(135deg, #059669, #0891b2);">📍 My Location</button>
                     </div>
                     <div id="meeting-map" class="w-full h-64 rounded-xl border border-gray-200 overflow-hidden"></div>
@@ -146,13 +150,20 @@
             </div>
             <div class="flex gap-3 mt-6">
                 <button type="button" onclick="hideModal('create-modal')" class="flex-1 py-2.5 rounded-xl bg-gray-100 text-sm font-bold text-gray-600 hover:bg-gray-200 transition-colors">Cancel</button>
-                <button type="button" onclick="hideModal('create-modal'); document.querySelector('form').submit();" class="flex-1 py-2.5 rounded-xl text-sm font-bold text-white shadow-md" style="background: linear-gradient(135deg, #059669, #0891b2);">Create</button>
+                <button type="button" onclick="hideModal('create-modal'); submitEventForm();" class="flex-1 py-2.5 rounded-xl text-sm font-bold text-white shadow-md" style="background: linear-gradient(135deg, #059669, #0891b2);">Create</button>
             </div>
         </div>
     </div>
 
     <script>
         const placesJson = @json($places->map(fn($p) => ['id' => $p->id, 'name' => $p->name, 'category' => $p->category->value]));
+
+        // Submit form programmatically — bypass onsubmit="return false"
+        function submitEventForm() {
+            const form = document.getElementById('event-form');
+            form.removeAttribute('onsubmit');
+            form.submit();
+        }
 
         function addItineraryRow() {
             const container = document.getElementById('itinerary-container');
@@ -235,6 +246,21 @@
         addItineraryRow();
         addRuleRow();
 
+        // Move search input outside the form to prevent Google Maps SearchBox form injection
+        const searchInput = document.getElementById('map-search');
+        const searchSlot = document.getElementById('map-search-slot');
+        const wrapper = document.getElementById('map-search-wrapper');
+        searchSlot.appendChild(searchInput);
+        searchInput.style.width = '100%';
+        wrapper.remove();
+
+        // Prevent Enter key on any input from submitting the form
+        document.getElementById('event-form').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+            }
+        });
+
         // Meeting point map — Google Maps
         const mapDiv = document.getElementById('meeting-map');
         const defaultLat = 12.8797, defaultLng = 121.7740;
@@ -242,7 +268,6 @@
         let marker = null;
 
         // Search box
-        const searchInput = document.getElementById('map-search');
         const searchBox = new google.maps.places.SearchBox(searchInput);
         searchBox.addListener('places_changed', function() {
             const places = searchBox.getPlaces();
@@ -297,8 +322,6 @@
                 setPin(lat, lng);
             });
         };
-
-        window.searchLocation = function() {}; // handled by SearchBox
 
         function showModal(id) { document.getElementById(id).classList.remove('hidden'); document.getElementById(id).classList.add('flex'); }
         function hideModal(id) { document.getElementById(id).classList.add('hidden'); document.getElementById(id).classList.remove('flex'); }
