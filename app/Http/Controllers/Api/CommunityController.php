@@ -287,7 +287,7 @@ class CommunityController extends Controller
     public function toggleReaction(Request $request, Post $post): JsonResponse
     {
         $validated = $request->validate([
-            'type' => ['nullable', 'in:like,love,fire,wow,congrats'],
+            'type' => ['nullable', 'in:like,love,fire,wow,congrats,thumbs_down,sad,angry'],
         ]);
 
         $type = $validated['type'] ?? 'like';
@@ -333,7 +333,7 @@ class CommunityController extends Controller
     public function toggleCommentReaction(Request $request, Comment $comment): JsonResponse
     {
         $validated = $request->validate([
-            'type' => ['nullable', 'in:like,love,fire,wow,congrats'],
+            'type' => ['nullable', 'in:like,love,fire,wow,congrats,thumbs_down,sad,angry'],
         ]);
 
         $type = $validated['type'] ?? 'like';

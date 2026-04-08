@@ -143,7 +143,7 @@ class NotificationService
     public function notifyReaction(User $postOwner, User $reactor, Post $post, string $reactionType): void
     {
         if ($postOwner->id === $reactor->id) return;
-        $emoji = match($reactionType) { 'like'=>'👍', 'love'=>'❤️', 'fire'=>'🔥', 'wow'=>'😮', 'congrats'=>'🎉', default=>'👍' };
+        $emoji = match($reactionType) { 'like'=>'👍', 'love'=>'❤️', 'fire'=>'🔥', 'wow'=>'😮', 'congrats'=>'🎉', 'thumbs_down'=>'👎', 'sad'=>'😢', 'angry'=>'😡', default=>'👍' };
         $this->notify($postOwner, 'reaction', "{$emoji} New Reaction", "{$reactor->name} reacted to your post.", [
             'post_id' => $post->id,
             'reactor_id' => $reactor->id,
