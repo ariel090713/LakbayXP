@@ -59,15 +59,21 @@
                         </select>
                     </div>
                 </div>
-                <div class="grid gap-4 sm:grid-cols-3">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Latitude</label>
-                        <input type="number" name="latitude" value="{{ old('latitude', $place->latitude) }}" step="0.0000001" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                <!-- Location Map Picker -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">📍 Pin Location</label>
+                    <div class="flex gap-2 mb-2">
+                        <input type="text" id="map-search" placeholder="Search location..." class="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm" />
+                        <button type="button" onclick="goToMyLocation()" class="px-4 py-2 rounded-lg text-sm font-medium text-white" style="background: linear-gradient(135deg, #059669, #0891b2);">📍 My Location</button>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Longitude</label>
-                        <input type="number" name="longitude" value="{{ old('longitude', $place->longitude) }}" step="0.0000001" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
+                    <div id="place-map" class="w-full h-64 rounded-xl border border-gray-200 overflow-hidden"></div>
+                    <input type="hidden" name="latitude" id="place_lat" value="{{ old('latitude', $place->latitude) }}">
+                    <input type="hidden" name="longitude" id="place_lng" value="{{ old('longitude', $place->longitude) }}">
+                    <div class="text-xs text-gray-400 mt-1" id="place-coords">
+                        @if($place->latitude)📍 {{ number_format($place->latitude, 4) }}, {{ number_format($place->longitude, 4) }}@else Click the map to pin @endif
                     </div>
+                </div>
+                <div class="grid gap-4 sm:grid-cols-2">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">XP Reward</label>
                         <input type="number" name="xp_reward" value="{{ old('xp_reward', $place->xp_reward) }}" min="0" class="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500" />
@@ -180,5 +186,59 @@
 
         regionSelect.addEventListener('change', updateProvinces);
         updateProvinces();
+    </script>
+    <script>
+        // Place location map
+        const mapDiv = document.getElementById('place-map');
+        if (mapDiv && typeof google !== 'undefined') {
+            const initLat = {{ $place->latitude ?? 12.8797 }};
+            const initLng = {{ $place->longitude ?? 121.7740 }};
+            const initZoom = {{ $place->latitude ? 15 : 6 }};
+            const map = new google.maps.Map(mapDiv, { center: { lat: initLat, lng: initLng }, zoom: initZoom, mapTypeControl: false, streetViewControl: false });
+            let marker = null;
+
+            const searchInput = document.getElementById('map-search');
+            const searchBox = new google.maps.places.SearchBox(searchInput);
+            searchBox.addListener('places_changed', function() {
+                const places = searchBox.getPlaces();
+                if (!places.length) return;
+                const place = places[0];
+                if (!place.geometry) return;
+                map.setCenter(place.geometry.location);
+                map.setZoom(16);
+                setPin(place.geometry.location.lat(), place.geometry.location.lng());
+            });
+
+            @if($place->latitude)
+            setPin({{ $place->latitude }}, {{ $place->longitude }});
+            @elseif(!$place->latitude)
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(pos) {
+                    map.setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                    map.setZoom(14);
+                });
+            }
+            @endif
+
+            function setPin(lat, lng) {
+                document.getElementById('place_lat').value = lat.toFixed(7);
+                document.getElementById('place_lng').value = lng.toFixed(7);
+                document.getElementById('place-coords').textContent = '📍 ' + lat.toFixed(4) + ', ' + lng.toFixed(4);
+                if (marker) marker.setMap(null);
+                marker = new google.maps.Marker({ position: { lat, lng }, map, draggable: true });
+                marker.addListener('dragend', function() { setPin(marker.getPosition().lat(), marker.getPosition().lng()); });
+            }
+
+            map.addListener('click', function(e) { setPin(e.latLng.lat(), e.latLng.lng()); });
+
+            window.goToMyLocation = function() {
+                if (!navigator.geolocation) return alert('Geolocation not supported');
+                navigator.geolocation.getCurrentPosition(function(pos) {
+                    map.setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+                    map.setZoom(16);
+                    setPin(pos.coords.latitude, pos.coords.longitude);
+                });
+            };
+        }
     </script>
 </x-layouts.admin>
