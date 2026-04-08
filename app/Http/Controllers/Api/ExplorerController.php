@@ -56,6 +56,25 @@ class ExplorerController extends Controller
             $query->where('city', 'like', '%' . $request->input('city') . '%');
         }
 
+        // ── Region filter (explorers who unlocked places in this region) ──
+        if ($request->filled('region')) {
+            $region = $request->input('region');
+            $query->whereHas('unlockedPlaces', function ($q) use ($region) {
+                $q->where('region', $region)
+                  ->orWhere('region', 'like', "%{$region}%")
+                  ->orWhereRaw('? LIKE CONCAT("%", region, "%")', [$region]);
+            });
+        }
+
+        // ── Province filter (explorers who unlocked places in this province) ──
+        if ($request->filled('province')) {
+            $province = $request->input('province');
+            $query->whereHas('unlockedPlaces', function ($q) use ($province) {
+                $q->where('province', $province)
+                  ->orWhere('province', 'like', "%{$province}%");
+            });
+        }
+
         // ── Only with location (for near_me) ──
         if ($sort === 'near_me') {
             $lat = $request->input('lat');
