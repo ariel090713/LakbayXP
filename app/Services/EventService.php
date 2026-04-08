@@ -47,6 +47,10 @@ class EventService
             throw new AuthorizationException('You are not the organizer of this event.');
         }
 
+        if (!$organizer->is_verified_organizer) {
+            throw new \InvalidArgumentException('Your account must be verified by admin before you can submit events for review.');
+        }
+
         if ($event->status !== EventStatus::Draft) {
             throw new \InvalidArgumentException('Only draft events can be submitted for review.');
         }
