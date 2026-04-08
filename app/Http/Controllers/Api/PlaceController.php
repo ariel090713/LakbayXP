@@ -25,14 +25,23 @@ class PlaceController extends Controller
             }
         }
 
-        // Region filter
+        // Region filter (handles both short and full region names)
         if ($request->filled('region')) {
-            $query->where('region', 'like', '%' . $request->input('region') . '%');
+            $region = $request->input('region');
+            $query->where(function ($q) use ($region) {
+                $q->where('region', $region)
+                  ->orWhere('region', 'like', "%{$region}%")
+                  ->orWhereRaw('? LIKE CONCAT("%", region, "%")', [$region]);
+            });
         }
 
         // Province filter
         if ($request->filled('province')) {
-            $query->where('province', 'like', '%' . $request->input('province') . '%');
+            $province = $request->input('province');
+            $query->where(function ($q) use ($province) {
+                $q->where('province', $province)
+                  ->orWhere('province', 'like', "%{$province}%");
+            });
         }
 
         // Search by name
