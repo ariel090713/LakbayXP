@@ -17,29 +17,50 @@ class ProfileController extends Controller
     public function update(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'avatar' => ['nullable', 'image', 'max:5120'],
+            'name' => ['nullable', 'string', 'max:255'],
+            'username' => ['nullable', 'string', 'max:255', 'unique:users,username,' . $request->user()->id],
             'bio' => ['nullable', 'string', 'max:1000'],
+            'avatar' => ['nullable', 'image', 'max:5120'],
+            'cover_photo' => ['nullable', 'image', 'max:10240'],
         ]);
 
         $user = $request->user();
 
         if ($request->hasFile('avatar')) {
-            $path = Storage::disk()->putFile('avatars', $request->file('avatar'));
-            $user->avatar_path = $path;
+            try {
+                $path = Storage::disk('s3')->putFile('avatars', $request->file('avatar'));
+                if ($path) $user->avatar_path = $path;
+            } catch (\Throwable $e) {
+                \Log::error('Avatar upload failed', ['error' => $e->getMessage()]);
+            }
         }
 
-        if (array_key_exists('bio', $validated)) {
-            $user->bio = $validated['bio'];
+        if ($request->hasFile('cover_photo')) {
+            try {
+                $path = Storage::disk('s3')->putFile('covers', $request->file('cover_photo'));
+                if ($path) $user->cover_photo_path = $path;
+            } catch (\Throwable $e) {
+                \Log::error('Cover photo upload failed', ['error' => $e->getMessage()]);
+            }
         }
+
+        if (isset($validated['name'])) $user->name = $validated['name'];
+        if (isset($validated['username'])) $user->username = $validated['username'];
+        if (array_key_exists('bio', $validated)) $user->bio = $validated['bio'];
 
         $user->save();
 
         return response()->json([
             'message' => 'Profile updated successfully.',
             'data' => [
+                'id' => $user->id,
+                'name' => $user->name,
                 'username' => $user->username,
                 'bio' => $user->bio,
                 'avatar_path' => $user->avatar_path,
+                'avatar_url' => $user->avatar_path ? Storage::disk('s3')->url($user->avatar_path) : null,
+                'cover_photo_path' => $user->cover_photo_path,
+                'cover_photo_url' => $user->cover_photo_path ? Storage::disk('s3')->url($user->cover_photo_path) : null,
             ],
         ]);
     }

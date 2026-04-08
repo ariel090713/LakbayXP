@@ -103,6 +103,7 @@ class CommunityController extends Controller
 
         $post->load(['user:id,name,username,avatar_path,level', 'images']);
         $post->loadCount(['reactions', 'comments']);
+        $post->reaction_counts = $post->reaction_counts;
 
         return response()->json(['data' => $post], 201);
     }

@@ -30,6 +30,7 @@ class User extends Authenticatable
         'username',
         'bio',
         'avatar_path',
+        'cover_photo_path',
         'role',
         'firebase_uid',
         'google_id',
