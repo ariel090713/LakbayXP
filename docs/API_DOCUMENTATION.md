@@ -64,30 +64,6 @@ All place categories with icons and counts.
 
 ---
 
-### GET /places/all
-All active places with coordinates (for map markers, no pagination).
-
-**Response 200:**
-```json
-{
-  "data": [
-    {
-      "id": 1,
-      "name": "Mt. Pulag",
-      "slug": "mt-pulag",
-      "category": "mountain",
-      "region": "Cordillera",
-      "province": "Benguet",
-      "latitude": "16.5870000",
-      "longitude": "120.8970000",
-      "xp_reward": 150,
-      "unlocked_by_users_count": 8
-    }
-  ]
-}
-```
-
----
 
 ## 🔐 AUTHENTICATED ENDPOINTS
 
@@ -220,9 +196,32 @@ Cancel own booking.
 ## 📍 PLACES
 
 ### GET /places
-List active places (paginated). Supports filters.
+List active places (paginated). Supports search, filters, near-me, and sorting.
 
-**Query params:** `?category=beach&region=Cordillera&search=pulag&page=1&per_page=15`
+**Headers:** `Authorization: Bearer {token}`
+
+**Query Params:**
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| `search` | string | — | Search by place name |
+| `category` | string | — | Filter by category (e.g. `mountain`, `beach`) |
+| `region` | string | — | Filter by region (partial match) |
+| `province` | string | — | Filter by province (partial match) |
+| `lat` | float | — | User latitude (enables near-me, sorted by distance) |
+| `lng` | float | — | User longitude (required with `lat`) |
+| `radius` | int | `100` | Radius in km (only with `lat`/`lng`) |
+| `sort` | string | — | `popular` (most unlocked), `xp` (highest XP), `newest` |
+| `per_page` | int | `15` | Results per page |
+| `page` | int | `1` | Page number |
+
+**Example Requests:**
+```
+GET /api/places?category=mountain&sort=popular
+GET /api/places?lat=14.5995&lng=120.9842&radius=50
+GET /api/places?region=Cordillera&province=Benguet
+GET /api/places?search=pulag&sort=xp
+```
 
 **Response 200:**
 ```json
@@ -239,7 +238,8 @@ List active places (paginated). Supports filters.
       "latitude": "16.5870000",
       "longitude": "120.8970000",
       "xp_reward": 150,
-      "is_active": true
+      "is_active": true,
+      "distance_km": 12.4
     }
   ],
   "current_page": 1,
@@ -248,6 +248,11 @@ List active places (paginated). Supports filters.
   "total": 105
 }
 ```
+
+**Notes:**
+- `distance_km` only present when `lat`/`lng` params are provided
+- Near-me results are sorted by distance (closest first)
+- Without `lat`/`lng`, sorted alphabetically by default (or by `sort` param)
 
 ### GET /places/{slug}
 Single place detail.
@@ -949,3 +954,56 @@ Update current user's location (call on app launch or when location changes).
   "errors": { "latitude": ["The latitude field is required."] }
 }
 ```
+
+### GET /places/all
+All active places with coordinates (for map markers, no pagination).
+
+**Response 200:**
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "name": "Mt. Pulag",
+      "slug": "mt-pulag",
+      "category": "mountain",
+      "region": "Cordillera",
+      "province": "Benguet",
+      "latitude": "16.5870000",
+      "longitude": "120.8970000",
+      "xp_reward": 150,
+      "unlocked_by_users_count": 8
+    }
+  ]
+}
+```
+
+---
+
+### GET /regions
+All 17 Philippine regions with their provinces (for filter dropdowns, no auth).
+
+**Response 200:**
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "name": "National Capital Region (NCR)",
+      "provinces": ["Manila", "Quezon City", "Makati", "Pasig", "Taguig"]
+    },
+    {
+      "id": 2,
+      "name": "Cordillera Administrative Region (CAR)",
+      "provinces": ["Abra", "Apayao", "Benguet", "Ifugao", "Kalinga", "Mountain Province"]
+    },
+    {
+      "id": 3,
+      "name": "Ilocos Region",
+      "provinces": ["Ilocos Norte", "Ilocos Sur", "La Union", "Pangasinan"]
+    }
+  ]
+}
+```
+
+---

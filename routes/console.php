@@ -8,14 +8,14 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote')->hourly();
 
-// AI Place Discovery — runs daily at 2 AM, discovers 10 new places with photos
-Schedule::command('places:discover --count=10 --with-photos')
-    ->dailyAt('02:00')
+// AI Place Discovery — runs every hour, discovers 5 new places with photos
+Schedule::command('places:discover --count=5 --with-photos')
+    ->hourly()
     ->withoutOverlapping()
     ->appendOutputTo(storage_path('logs/places-discover.log'));
 
-// AI Place Update — runs daily at 3 AM, updates 20 places with correct data + missing photos
-Schedule::command('places:update --limit=20 --photos')
-    ->dailyAt('03:00')
+// AI Place Update — runs every hour (offset 30 min), updates 10 places
+Schedule::command('places:update --limit=10 --photos')
+    ->hourlyAt(30)
     ->withoutOverlapping()
     ->appendOutputTo(storage_path('logs/places-update.log'));

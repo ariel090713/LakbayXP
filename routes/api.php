@@ -63,6 +63,27 @@ Route::get('/places/all', function () {
     return response()->json(['data' => $places]);
 });
 
+// Regions with provinces
+Route::get('/regions', function () {
+    $regions = \DB::table('regions')
+        ->orderBy('sort_order')
+        ->get()
+        ->map(function ($region) {
+            $provinces = \DB::table('provinces')
+                ->where('region_id', $region->id)
+                ->orderBy('sort_order')
+                ->pluck('name');
+
+            return [
+                'id' => $region->id,
+                'name' => $region->name,
+                'provinces' => $provinces,
+            ];
+        });
+
+    return response()->json(['data' => $regions]);
+});
+
 Route::middleware('auth:sanctum')->group(function () {
     // FCM token registration
     Route::post('/auth/fcm-token', [AuthController::class, 'updateFcmToken']);
