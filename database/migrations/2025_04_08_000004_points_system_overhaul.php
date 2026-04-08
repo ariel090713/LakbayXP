@@ -27,20 +27,30 @@ return new class extends Migration
 
         // Badge: add rarity, is_repeatable, max_claims
         Schema::table('badges', function (Blueprint $table) {
-            $table->string('rarity')->default('common')->after('category'); // common, rare, epic, legendary
-            $table->boolean('is_repeatable')->default(false)->after('is_active');
-            $table->unsignedInteger('max_claims')->nullable()->after('is_repeatable'); // null = unlimited if repeatable
+            if (!Schema::hasColumn('badges', 'rarity')) {
+                $table->string('rarity')->default('common')->after('category');
+            }
+            if (!Schema::hasColumn('badges', 'is_repeatable')) {
+                $table->boolean('is_repeatable')->default(false)->after('is_active');
+            }
+            if (!Schema::hasColumn('badges', 'max_claims')) {
+                $table->unsignedInteger('max_claims')->nullable()->after('is_repeatable');
+            }
         });
 
         // user_badges: add claim count
         Schema::table('user_badges', function (Blueprint $table) {
-            $table->unsignedInteger('claim_count')->default(1)->after('is_viewed');
+            if (!Schema::hasColumn('user_badges', 'claim_count')) {
+                $table->unsignedInteger('claim_count')->default(1)->after('is_viewed');
+            }
         });
 
         // Places: add points_reward
-        Schema::table('places', function (Blueprint $table) {
-            $table->unsignedInteger('points_reward')->default(0)->after('xp_reward');
-        });
+        if (!Schema::hasColumn('places', 'points_reward')) {
+            Schema::table('places', function (Blueprint $table) {
+                $table->unsignedInteger('points_reward')->default(0)->after('xp_reward');
+            });
+        }
 
         // Admin settings table
         Schema::create('app_settings', function (Blueprint $table) {
@@ -52,16 +62,20 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // Seed default settings
-        \DB::table('app_settings')->insert([
-            ['key' => 'points_per_level_up', 'value' => '10', 'group' => 'points', 'description' => 'Points earned per level up', 'created_at' => now(), 'updated_at' => now()],
-            ['key' => 'points_event_easy', 'value' => '5', 'group' => 'points', 'description' => 'Points for completing easy event', 'created_at' => now(), 'updated_at' => now()],
-            ['key' => 'points_event_moderate', 'value' => '10', 'group' => 'points', 'description' => 'Points for completing moderate event', 'created_at' => now(), 'updated_at' => now()],
-            ['key' => 'points_event_hard', 'value' => '20', 'group' => 'points', 'description' => 'Points for completing hard event', 'created_at' => now(), 'updated_at' => now()],
-            ['key' => 'points_event_extreme', 'value' => '30', 'group' => 'points', 'description' => 'Points for completing extreme event', 'created_at' => now(), 'updated_at' => now()],
-            ['key' => 'welcome_badge_id', 'value' => '1', 'group' => 'general', 'description' => 'Badge ID to award on registration', 'created_at' => now(), 'updated_at' => now()],
-            ['key' => 'welcome_xp', 'value' => '10', 'group' => 'xp', 'description' => 'XP awarded on registration', 'created_at' => now(), 'updated_at' => now()],
-        ]);
+        // Seed default settings (skip if exists)
+        $settings = [
+            ['key' => 'points_per_level_up', 'value' => '10', 'group' => 'points', 'description' => 'Points earned per level up'],
+            ['key' => 'points_event_easy', 'value' => '5', 'group' => 'points', 'description' => 'Points for completing easy event'],
+            ['key' => 'points_event_moderate', 'value' => '10', 'group' => 'points', 'description' => 'Points for completing moderate event'],
+            ['key' => 'points_event_hard', 'value' => '20', 'group' => 'points', 'description' => 'Points for completing hard event'],
+            ['key' => 'points_event_extreme', 'value' => '30', 'group' => 'points', 'description' => 'Points for completing extreme event'],
+            ['key' => 'welcome_badge_id', 'value' => '1', 'group' => 'general', 'description' => 'Badge ID to award on registration'],
+            ['key' => 'welcome_xp', 'value' => '10', 'group' => 'xp', 'description' => 'XP awarded on registration'],
+        ];
+
+        foreach ($settings as $s) {
+            \DB::table('app_settings')->insertOrIgnore(array_merge($s, ['created_at' => now(), 'updated_at' => now()]));
+        }
     }
 
     public function down(): void
