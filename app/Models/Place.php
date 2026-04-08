@@ -68,8 +68,15 @@ class Place extends Model
         return $this->meta->firstWhere('meta_key', $key)?->meta_value ?? $default;
     }
 
-    public function setMeta(string $key, ?string $value): void
+    public function setMeta(string $key, mixed $value): void
     {
+        // Cast arrays/numbers to string
+        if (is_array($value)) {
+            $value = implode(', ', $value);
+        } elseif ($value !== null) {
+            $value = (string) $value;
+        }
+
         PlaceMeta::updateOrCreate(
             ['place_id' => $this->id, 'meta_key' => $key],
             ['meta_value' => $value]

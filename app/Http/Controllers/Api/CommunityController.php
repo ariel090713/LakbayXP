@@ -140,8 +140,85 @@ class CommunityController extends Controller
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 
+        // Delete images from S3
+        foreach ($post->images as $image) {
+            Storage::disk('s3')->delete($image->image_path);
+        }
+
         $post->delete();
         return response()->json(['message' => 'Post deleted.']);
+    }
+
+    /**
+     * Update a post (content only, or add more images).
+     */
+    public function updatePost(Request $request, Post $post): JsonResponse
+    {
+        if ($post->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+
+        $validated = $request->validate([
+            'content' => ['sometimes', 'string', 'max:2000'],
+            'images' => ['nullable', 'array', 'max:5'],
+            'images.*' => ['image', 'max:10240'],
+        ]);
+
+        if (isset($validated['content'])) {
+            $post->update(['content' => $validated['content']]);
+        }
+
+        // Add new images
+        if ($request->hasFile('images')) {
+            $maxSort = $post->images()->max('sort_order') ?? -1;
+            foreach ($request->file('images') as $i => $image) {
+                try {
+                    $path = Storage::disk('s3')->putFile('posts', $image);
+                    if ($path) {
+                        PostImage::create([
+                            'post_id' => $post->id,
+                            'image_path' => $path,
+                            'sort_order' => $maxSort + $i + 1,
+                        ]);
+                    }
+                } catch (\Throwable $e) {
+                    \Log::error('Post image upload failed', ['post_id' => $post->id, 'error' => $e->getMessage()]);
+                }
+            }
+            // Update type to photo if it was text
+            if ($post->type === 'text') {
+                $post->update(['type' => 'photo']);
+            }
+        }
+
+        $post->load(['user:id,name,username,avatar_path,level', 'images']);
+        $post->loadCount(['reactions', 'comments']);
+
+        return response()->json(['data' => $post]);
+    }
+
+    /**
+     * Delete a single image from a post.
+     */
+    public function deletePostImage(Request $request, Post $post, PostImage $postImage): JsonResponse
+    {
+        if ($post->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+
+        if ($postImage->post_id !== $post->id) {
+            return response()->json(['message' => 'Image does not belong to this post.'], 422);
+        }
+
+        Storage::disk('s3')->delete($postImage->image_path);
+        $postImage->delete();
+
+        // If no images left, revert type to text
+        if ($post->images()->count() === 0) {
+            $post->update(['type' => 'text']);
+        }
+
+        return response()->json(['message' => 'Image deleted.']);
     }
 
     /**

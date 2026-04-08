@@ -16,6 +16,24 @@ class BookingController extends Controller
     ) {}
 
     /**
+     * List authenticated user's bookings.
+     */
+    public function myBookings(Request $request): JsonResponse
+    {
+        $query = Booking::where('user_id', $request->user()->id)
+            ->with(['event:id,title,slug,cover_image_path,event_date,end_date,meeting_place,meeting_time,fee,status,difficulty,category,organizer_id', 'event.organizer:id,name,username,avatar_path'])
+            ->orderByDesc('created_at');
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        $bookings = $query->paginate($request->input('per_page', 15));
+
+        return response()->json($bookings);
+    }
+
+    /**
      * Book an event.
      */
     public function store(Request $request, Event $event): JsonResponse

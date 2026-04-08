@@ -49,6 +49,17 @@ class PlaceController extends Controller
             $query->where('name', 'like', '%' . $request->input('search') . '%');
         }
 
+        // Unlock status filter (unlocked / locked for current user)
+        if ($request->filled('unlock')) {
+            $userId = $request->user()->id;
+            $unlockFilter = $request->input('unlock');
+            if ($unlockFilter === 'unlocked') {
+                $query->whereHas('unlockedByUsers', fn ($q) => $q->where('users.id', $userId));
+            } elseif ($unlockFilter === 'locked') {
+                $query->whereDoesntHave('unlockedByUsers', fn ($q) => $q->where('users.id', $userId));
+            }
+        }
+
         $isNearMe = false;
 
         // Near me (Haversine)

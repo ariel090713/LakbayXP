@@ -53,6 +53,7 @@ class DiscoverPlaces extends Command
                 'latitude' => $p['latitude'] ?? null,
                 'longitude' => $p['longitude'] ?? null,
                 'xp_reward' => $p['xp_reward'] ?? 50,
+                'points_reward' => $p['points_reward'] ?? intval(($p['xp_reward'] ?? 50) * 0.5),
                 'is_active' => true,
                 'created_by' => 1,
             ]);

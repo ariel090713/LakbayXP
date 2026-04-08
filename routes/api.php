@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\RewardController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\CommunityController;
 use App\Http\Controllers\Api\ExplorerController;
+use App\Http\Controllers\Api\TravelBuddyController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -142,6 +143,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/events', [EventController::class, 'index']);
     Route::get('/events/{event:slug}', [EventController::class, 'show']);
     Route::post('/events/{event}/book', [BookingController::class, 'store']);
+    Route::get('/my-bookings', [BookingController::class, 'myBookings']);
     Route::delete('/bookings/{booking}', [BookingController::class, 'cancel']);
 
     // Organizer API endpoints
@@ -229,9 +231,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/profile/{user:username}/badges', [ProfileController::class, 'badges']);
     Route::post('/profile', [ProfileController::class, 'update']);
 
-    // Social
+    // Social — Follow
     Route::post('/users/{user}/follow', [FollowController::class, 'store']);
     Route::delete('/users/{user}/unfollow', [FollowController::class, 'destroy']);
+    Route::get('/users/{user}/followers', [FollowController::class, 'followers']);
+    Route::get('/users/{user}/following', [FollowController::class, 'following']);
+
+    // Travel Buddies
+    Route::get('/travel-buddies', [TravelBuddyController::class, 'index']);
+    Route::get('/travel-buddies/pending-received', [TravelBuddyController::class, 'pendingReceived']);
+    Route::get('/travel-buddies/pending-sent', [TravelBuddyController::class, 'pendingSent']);
+    Route::post('/users/{user}/buddy-request', [TravelBuddyController::class, 'store']);
+    Route::post('/travel-buddies/{travelBuddy}/accept', [TravelBuddyController::class, 'accept']);
+    Route::post('/travel-buddies/{travelBuddy}/decline', [TravelBuddyController::class, 'decline']);
+    Route::delete('/travel-buddies/{travelBuddy}', [TravelBuddyController::class, 'remove']);
 
     // Achievements & Leaderboard
     Route::get('/leaderboard', [LeaderboardController::class, 'index']);
@@ -320,7 +333,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/feed', [CommunityController::class, 'feed']);
     Route::post('/posts', [CommunityController::class, 'createPost']);
     Route::get('/posts/{post}', [CommunityController::class, 'showPost']);
+    Route::put('/posts/{post}', [CommunityController::class, 'updatePost']);
     Route::delete('/posts/{post}', [CommunityController::class, 'deletePost']);
+    Route::delete('/posts/{post}/images/{postImage}', [CommunityController::class, 'deletePostImage']);
     Route::get('/posts/{post}/comments', [CommunityController::class, 'getComments']);
     Route::post('/posts/{post}/comments', [CommunityController::class, 'addComment']);
     Route::post('/posts/{post}/react', [CommunityController::class, 'toggleReaction']);
