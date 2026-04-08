@@ -16,7 +16,19 @@ class Event extends Model
 {
     use HasFactory;
 
-    protected $appends = ['cover_image_url'];
+    protected $appends = ['cover_image_url', 'available_slots', 'booked_count'];
+
+    public function getAvailableSlotsAttribute(): int
+    {
+        return $this->availableSlots();
+    }
+
+    public function getBookedCountAttribute(): int
+    {
+        return $this->bookings()
+            ->whereIn('status', [BookingStatus::Pending, BookingStatus::Approved])
+            ->count();
+    }
 
     protected $fillable = [
         'organizer_id',
