@@ -101,16 +101,32 @@ class AdminPlaceController extends Controller
             'meta' => ['nullable', 'array'],
             'custom_meta_keys' => ['nullable', 'array'],
             'custom_meta_values' => ['nullable', 'array'],
+            'gallery' => ['nullable', 'array', 'max:10'],
+            'gallery.*' => ['image', 'max:10240'],
         ]);
 
         if ($request->hasFile('cover_image')) {
-            $validated['cover_image_path'] = Storage::disk()->putFile('place-covers', $request->file('cover_image'));
+            $validated['cover_image_path'] = Storage::disk('s3')->putFile('place-covers', $request->file('cover_image'));
         }
 
-        unset($validated['cover_image'], $validated['meta'], $validated['custom_meta_keys'], $validated['custom_meta_values']);
+        unset($validated['cover_image'], $validated['meta'], $validated['custom_meta_keys'], $validated['custom_meta_values'], $validated['gallery']);
         $validated['created_by'] = $request->user()->id;
 
         $place = $this->placeService->create($validated);
+
+        // Upload gallery images
+        if ($request->hasFile('gallery')) {
+            foreach ($request->file('gallery') as $i => $image) {
+                $path = Storage::disk('s3')->putFile('place-gallery', $image);
+                if ($path) {
+                    $place->images()->create([
+                        'image_path' => $path,
+                        'image_source' => 'admin',
+                        'sort_order' => $i,
+                    ]);
+                }
+            }
+        }
 
         // Save category-specific meta
         if ($request->has('meta')) {
@@ -166,15 +182,44 @@ class AdminPlaceController extends Controller
             'meta' => ['nullable', 'array'],
             'custom_meta_keys' => ['nullable', 'array'],
             'custom_meta_values' => ['nullable', 'array'],
+            'gallery' => ['nullable', 'array', 'max:10'],
+            'gallery.*' => ['image', 'max:10240'],
+            'delete_images' => ['nullable', 'array'],
+            'delete_images.*' => ['integer'],
         ]);
 
         if ($request->hasFile('cover_image')) {
-            $validated['cover_image_path'] = Storage::disk()->putFile('place-covers', $request->file('cover_image'));
+            $validated['cover_image_path'] = Storage::disk('s3')->putFile('place-covers', $request->file('cover_image'));
         }
 
-        unset($validated['cover_image'], $validated['meta'], $validated['custom_meta_keys'], $validated['custom_meta_values']);
+        unset($validated['cover_image'], $validated['meta'], $validated['custom_meta_keys'], $validated['custom_meta_values'], $validated['gallery'], $validated['delete_images']);
 
         $this->placeService->update($place, $validated);
+
+        // Delete selected gallery images
+        if ($request->filled('delete_images')) {
+            \App\Models\PlaceImage::whereIn('id', $request->input('delete_images'))
+                ->where('place_id', $place->id)
+                ->each(function ($img) {
+                    Storage::disk('s3')->delete($img->image_path);
+                    $img->delete();
+                });
+        }
+
+        // Upload new gallery images
+        if ($request->hasFile('gallery')) {
+            $maxSort = $place->images()->max('sort_order') ?? 0;
+            foreach ($request->file('gallery') as $i => $image) {
+                $path = Storage::disk('s3')->putFile('place-gallery', $image);
+                if ($path) {
+                    $place->images()->create([
+                        'image_path' => $path,
+                        'image_source' => 'admin',
+                        'sort_order' => $maxSort + $i + 1,
+                    ]);
+                }
+            }
+        }
 
         // Save category-specific meta
         if ($request->has('meta')) {

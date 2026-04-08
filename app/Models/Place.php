@@ -46,6 +46,11 @@ class Place extends Model
         return $this->hasMany(Event::class);
     }
 
+    public function images(): HasMany
+    {
+        return $this->hasMany(PlaceImage::class)->orderBy('sort_order');
+    }
+
     public function meta(): HasMany
     {
         return $this->hasMany(PlaceMeta::class);
