@@ -116,6 +116,18 @@ Route::middleware('auth:sanctum')->group(function () {
             $xpProgress = ['level' => $user->level ?? 1, 'total_xp' => $user->xp ?? 0, 'progress_percent' => 0];
         }
 
+        // Calculate ranking — ties allowed (same level + same xp = same rank)
+        $myRanking = \App\Models\User::where('role', 'user')
+            ->where(function ($q) use ($user) {
+                $q->where('level', '>', $user->level ?? 1)
+                  ->orWhere(function ($q2) use ($user) {
+                      $q2->where('level', $user->level ?? 1)
+                         ->where('xp', '>', $user->xp ?? 0);
+                  });
+            })
+            ->distinct('level', 'xp')
+            ->count() + 1;
+
         return response()->json([
             'id' => $user->id,
             'name' => $user->name,
@@ -135,6 +147,7 @@ Route::middleware('auth:sanctum')->group(function () {
             'badges_count' => $user->badges_count ?? 0,
             'followers_count' => $followersCount,
             'following_count' => $followingCount,
+            'my_ranking' => $myRanking,
             'created_at' => $user->created_at,
         ]);
     });
