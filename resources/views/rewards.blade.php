@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Rewards — LakbayXP</title>
+    <title>Rewards — PinasLakbay</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700,800" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -41,7 +41,7 @@
                 <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, #059669, #0891b2);">
                     <svg class="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
                 </div>
-                <span class="text-lg font-extrabold text-gray-900">Lakbay<span class="gradient-text">XP</span></span>
+                <span class="text-lg font-extrabold text-gray-900">Pinas<span class="gradient-text">Lakbay</span></span>
             </a>
             <a href="{{ route('home') }}" class="text-sm font-medium text-gray-500 hover:text-emerald-600 transition-colors">← Back to Home</a>
         </div>
@@ -121,7 +121,7 @@
             <div class="flex items-center justify-between mb-8">
                 <div>
                     <h2 class="text-2xl font-extrabold text-gray-900">Available Rewards</h2>
-                    <p class="text-sm text-gray-400 mt-1">Redeem via the LakbayXP mobile app.</p>
+                    <p class="text-sm text-gray-400 mt-1">Redeem via the PinasLakbay mobile app.</p>
                 </div>
                 <span class="px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-bold">{{ $rewards->count() }} rewards</span>
             </div>
@@ -168,7 +168,7 @@
                             {{-- Content --}}
                             <div class="p-5">
                                 <h3 class="font-extrabold text-gray-900 mb-1 group-hover:text-amber-700 transition-colors">{{ $reward->name }}</h3>
-                                <p class="text-xs text-gray-500 leading-relaxed mb-4">{{ $reward->description ?? 'Exclusive reward for LakbayXP explorers.' }}</p>
+                                <p class="text-xs text-gray-500 leading-relaxed mb-4">{{ $reward->description ?? 'Exclusive reward for PinasLakbay explorers.' }}</p>
 
                                 <div class="flex items-center justify-between">
                                     @if(!$isOut)
@@ -244,7 +244,7 @@
         <div class="max-w-2xl mx-auto px-4 text-center text-white">
             <span class="text-5xl block mb-4">🎁</span>
             <h2 class="text-3xl font-extrabold tracking-tight mb-3">Start earning rewards today</h2>
-            <p class="text-white/70 mb-6">Download LakbayXP, explore the Philippines, earn badges, and redeem exclusive freebies.</p>
+            <p class="text-white/70 mb-6">Download PinasLakbay, explore the Philippines, earn badges, and redeem exclusive freebies.</p>
             <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
                 <a href="{{ route('home') }}#download" class="inline-flex items-center gap-2 px-10 py-4 text-base font-bold text-amber-700 bg-white rounded-full hover:bg-amber-50 transition-all shadow-xl">
                     Download the App
@@ -259,7 +259,7 @@
 
     <!-- Footer -->
     <footer class="py-8 bg-gray-900 text-center">
-        <a href="{{ route('home') }}" class="text-white/60 text-sm hover:text-white transition-colors">← Back to LakbayXP</a>
+        <a href="{{ route('home') }}" class="text-white/60 text-sm hover:text-white transition-colors">← Back to PinasLakbay</a>
     </footer>
 
 </body>

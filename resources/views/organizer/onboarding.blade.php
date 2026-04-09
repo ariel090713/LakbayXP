@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Setup Your Profile — LakbayXP</title>
+    <title>Setup Your Profile — PinasLakbay</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700,800" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -21,7 +21,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                 </svg>
             </div>
-            <h1 class="text-3xl font-extrabold text-gray-900">Welcome to <span class="gradient-text">LakbayXP</span></h1>
+            <h1 class="text-3xl font-extrabold text-gray-900">Welcome to <span class="gradient-text">PinasLakbay</span></h1>
             <p class="text-gray-500 mt-2">Let's set up your organizer profile. This helps explorers trust your events.</p>
         </div>
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Leaderboard — LakbayXP</title>
+    <title>Leaderboard — PinasLakbay</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700,800" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -73,7 +73,7 @@
                 <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: linear-gradient(135deg, #059669, #0891b2);">
                     <svg class="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
                 </div>
-                <span class="text-lg font-extrabold text-gray-900">Lakbay<span class="gradient-text">XP</span></span>
+                <span class="text-lg font-extrabold text-gray-900">Pinas<span class="gradient-text">Lakbay</span></span>
             </a>
             <a href="{{ route('home') }}" class="text-sm font-medium text-gray-500 hover:text-emerald-600 transition-colors">← Back to Home</a>
         </div>
@@ -120,7 +120,7 @@
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-10">
                 <h2 class="text-2xl font-extrabold text-gray-900">🏆 Top 5 Explorers</h2>
-                <p class="text-sm text-gray-400 mt-1">The legends of LakbayXP</p>
+                <p class="text-sm text-gray-400 mt-1">The legends of PinasLakbay</p>
             </div>
 
             @if($topExplorers->count() >= 5)
@@ -373,7 +373,7 @@
         <div class="max-w-2xl mx-auto px-4 text-center text-white">
             <span class="text-5xl block mb-4">🏔️</span>
             <h2 class="text-3xl font-extrabold tracking-tight mb-3">Ready to climb the ranks?</h2>
-            <p class="text-white/70 mb-6">Download LakbayXP, start exploring, and see your name on this leaderboard.</p>
+            <p class="text-white/70 mb-6">Download PinasLakbay, start exploring, and see your name on this leaderboard.</p>
             <a href="{{ route('home') }}#download" class="inline-flex items-center gap-2 px-10 py-4 text-base font-bold text-emerald-700 bg-white rounded-full hover:bg-emerald-50 transition-all shadow-xl">
                 Download the App
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
@@ -383,7 +383,7 @@
 
     <!-- Footer -->
     <footer class="py-8 bg-gray-900 text-center">
-        <a href="{{ route('home') }}" class="text-white/60 text-sm hover:text-white transition-colors">← Back to LakbayXP</a>
+        <a href="{{ route('home') }}" class="text-white/60 text-sm hover:text-white transition-colors">← Back to PinasLakbay</a>
     </footer>
 
 </body>

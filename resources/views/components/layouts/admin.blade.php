@@ -25,7 +25,7 @@
                         </svg>
                     </div>
                     <div>
-                        <span class="text-lg font-bold text-gray-900">Lakbay<span class="gradient-text">XP</span></span>
+                        <span class="text-lg font-bold text-gray-900">Pinas<span class="gradient-text">Lakbay</span></span>
                         <span class="block text-[10px] font-semibold text-gray-400 -mt-1 tracking-wider uppercase">Admin</span>
                     </div>
                 </a>
@@ -94,7 +94,7 @@
         <!-- Main -->
         <main class="flex-1 lg:ml-64">
             <div class="lg:hidden h-16 bg-white border-b border-gray-100 flex items-center px-4">
-                <span class="font-bold text-gray-900">Lakbay<span class="gradient-text">XP</span> <span class="text-xs text-gray-400">Admin</span></span>
+                <span class="font-bold text-gray-900">Pinas<span class="gradient-text">Lakbay</span> <span class="text-xs text-gray-400">Admin</span></span>
             </div>
             <div class="p-6 lg:p-8">
                 {{ $slot }}

@@ -26,6 +26,42 @@ class CommunityController extends Controller
         $followingIds = $user->following()->pluck('users.id')->toArray();
 
         $posts = Post::active()
+            ->where(function ($q) use ($user) {
+                // Always see own posts
+                $q->where('user_id', $user->id);
+
+                // Public posts — everyone
+                $q->orWhere('visibility', 'public');
+
+                // Buddies-only posts — from my travel buddies
+                $myBuddyIds = \App\Models\TravelBuddy::where('status', 'accepted')
+                    ->where(fn ($b) => $b->where('requester_id', $user->id)->orWhere('receiver_id', $user->id))
+                    ->get()
+                    ->map(fn ($b) => $b->requester_id === $user->id ? $b->receiver_id : $b->requester_id)
+                    ->toArray();
+
+                if (!empty($myBuddyIds)) {
+                    $q->orWhere(function ($q2) use ($myBuddyIds) {
+                        $q2->where('visibility', 'buddies')->whereIn('user_id', $myBuddyIds);
+                    });
+
+                    // Buddies-of-buddies posts
+                    $bobIds = \App\Models\TravelBuddy::where('status', 'accepted')
+                        ->where(fn ($b) => $b->whereIn('requester_id', $myBuddyIds)->orWhereIn('receiver_id', $myBuddyIds))
+                        ->get()
+                        ->flatMap(fn ($b) => [$b->requester_id, $b->receiver_id])
+                        ->unique()
+                        ->reject(fn ($id) => $id === $user->id)
+                        ->values()
+                        ->toArray();
+
+                    if (!empty($bobIds)) {
+                        $q->orWhere(function ($q2) use ($bobIds) {
+                            $q2->where('visibility', 'buddies_of_buddies')->whereIn('user_id', $bobIds);
+                        });
+                    }
+                }
+            })
             ->with([
                 'user:id,name,username,avatar_path,level',
                 'images',
@@ -67,6 +103,7 @@ class CommunityController extends Controller
         $validated = $request->validate([
             'content' => ['required', 'string', 'max:2000'],
             'type' => ['nullable', 'in:text,photo'],
+            'visibility' => ['nullable', 'in:public,buddies,buddies_of_buddies,private'],
             'place_id' => ['nullable', 'exists:places,id'],
             'event_id' => ['nullable', 'exists:events,id'],
             'images' => ['nullable', 'array', 'max:5'],
@@ -77,6 +114,7 @@ class CommunityController extends Controller
             'user_id' => $request->user()->id,
             'content' => $validated['content'],
             'type' => $request->hasFile('images') ? 'photo' : ($validated['type'] ?? 'text'),
+            'visibility' => $validated['visibility'] ?? 'public',
             'place_id' => $validated['place_id'] ?? null,
             'event_id' => $validated['event_id'] ?? null,
         ]);
@@ -160,12 +198,16 @@ class CommunityController extends Controller
 
         $validated = $request->validate([
             'content' => ['sometimes', 'string', 'max:2000'],
+            'visibility' => ['sometimes', 'in:public,buddies,buddies_of_buddies,private'],
             'images' => ['nullable', 'array', 'max:5'],
             'images.*' => ['image', 'max:10240'],
         ]);
 
         if (isset($validated['content'])) {
             $post->update(['content' => $validated['content']]);
+        }
+        if (isset($validated['visibility'])) {
+            $post->update(['visibility' => $validated['visibility']]);
         }
 
         // Add new images
@@ -372,8 +414,37 @@ class CommunityController extends Controller
      */
     public function userPosts(Request $request, \App\Models\User $user): JsonResponse
     {
-        $posts = Post::active()
-            ->where('user_id', $user->id)
+        $me = $request->user();
+        $query = Post::active()->where('user_id', $user->id);
+
+        if ($me->id !== $user->id) {
+            $isBuddy = \App\Models\TravelBuddy::where('status', 'accepted')
+                ->where(fn ($q) => $q->where(fn ($q2) => $q2->where('requester_id', $me->id)->where('receiver_id', $user->id))
+                    ->orWhere(fn ($q2) => $q2->where('requester_id', $user->id)->where('receiver_id', $me->id)))
+                ->exists();
+
+            $isBuddyOfBuddy = false;
+            if (!$isBuddy) {
+                $myBuddyIds = \App\Models\TravelBuddy::where('status', 'accepted')
+                    ->where(fn ($b) => $b->where('requester_id', $me->id)->orWhere('receiver_id', $me->id))
+                    ->get()
+                    ->map(fn ($b) => $b->requester_id === $me->id ? $b->receiver_id : $b->requester_id)
+                    ->toArray();
+
+                $isBuddyOfBuddy = \App\Models\TravelBuddy::where('status', 'accepted')
+                    ->where(fn ($b) => $b->where(fn ($q) => $q->whereIn('requester_id', $myBuddyIds)->where('receiver_id', $user->id))
+                        ->orWhere(fn ($q) => $q->where('requester_id', $user->id)->whereIn('receiver_id', $myBuddyIds)))
+                    ->exists();
+            }
+
+            $allowed = ['public'];
+            if ($isBuddy) { $allowed[] = 'buddies'; $allowed[] = 'buddies_of_buddies'; }
+            elseif ($isBuddyOfBuddy) { $allowed[] = 'buddies_of_buddies'; }
+
+            $query->whereIn('visibility', $allowed);
+        }
+
+        $posts = $query
             ->with(['user:id,name,username,avatar_path,level', 'images', 'place:id,name,slug,category'])
             ->withCount(['reactions', 'comments'])
             ->orderByDesc('created_at')

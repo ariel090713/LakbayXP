@@ -25,7 +25,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                         </svg>
                     </div>
-                    <span class="text-lg font-bold text-gray-900">Lakbay<span class="gradient-text">XP</span></span>
+                    <span class="text-lg font-bold text-gray-900">Pinas<span class="gradient-text">Lakbay</span></span>
                 </a>
             </div>
 
@@ -78,7 +78,7 @@
                     <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-cyan-500 flex items-center justify-center">
                         <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
                     </div>
-                    <span class="font-bold text-gray-900">Lakbay<span class="gradient-text">XP</span></span>
+                    <span class="font-bold text-gray-900">Pinas<span class="gradient-text">Lakbay</span></span>
                 </a>
             </div>
 

@@ -37,14 +37,14 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                                 </svg>
                             </div>
-                            <span class="text-2xl font-bold">Lakbay<span class="text-emerald-200">XP</span></span>
+                            <span class="text-2xl font-bold">Pinas<span class="text-emerald-200">Lakbay</span></span>
                         </a>
                     </div>
                     <div class="space-y-6">
                         <h2 class="text-4xl font-extrabold leading-tight">Organize adventures.<br>Build your community.</h2>
                         <p class="text-lg text-emerald-100 max-w-md leading-relaxed">Create events, manage bookings, and connect with thousands of Filipino explorers across the Philippines.</p>
                     </div>
-                    <div class="text-xs text-emerald-200/60">&copy; {{ date('Y') }} LakbayXP. All rights reserved.</div>
+                    <div class="text-xs text-emerald-200/60">&copy; {{ date('Y') }} PinasLakbay. All rights reserved.</div>
                 </div>
             </div>
 
@@ -58,7 +58,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                             </svg>
                         </div>
-                        <span class="text-xl font-bold">Lakbay<span class="gradient-text">XP</span></span>
+                        <span class="text-xl font-bold">Pinas<span class="gradient-text">Lakbay</span></span>
                     </a>
                 </div>
 

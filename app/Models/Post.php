@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Post extends Model
 {
     protected $fillable = [
-        'user_id', 'content', 'type', 'place_id', 'event_id', 'badge_id', 'is_active',
+        'user_id', 'content', 'type', 'visibility', 'place_id', 'event_id', 'badge_id', 'is_active',
     ];
 
     protected function casts(): array
