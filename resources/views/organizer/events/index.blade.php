@@ -46,7 +46,12 @@
                                         <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-emerald-100 to-cyan-100 flex items-center justify-center text-lg shrink-0">📅</div>
                                     @endif
                                     <div>
-                                        <div class="font-semibold text-sm text-gray-900">{{ $event->title }}</div>
+                                        <div class="font-semibold text-sm text-gray-900 flex items-center gap-2">
+                                            {{ $event->title }}
+                                            @if($event->pending_bookings_count > 0)
+                                                <span class="px-1.5 py-0.5 rounded-full text-[10px] font-bold text-white bg-amber-500">{{ $event->pending_bookings_count }} pending</span>
+                                            @endif
+                                        </div>
                                         <div class="text-xs text-gray-400">{{ $event->slug }}</div>
                                     </div>
                                 </div>

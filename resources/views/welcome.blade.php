@@ -148,6 +148,34 @@
         </div>
     </section>
 
+    <!-- Quick Links -->
+    <section class="py-12 bg-white">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <a href="{{ route('leaderboard') }}" class="group card-hover flex flex-col items-center gap-3 p-6 rounded-2xl bg-gradient-to-b from-emerald-50 to-white border border-emerald-100 hover:border-emerald-300 transition-all">
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-cyan-400 flex items-center justify-center text-2xl shadow-lg shadow-emerald-200/50 group-hover:scale-110 transition-transform">🏆</div>
+                    <span class="text-sm font-bold text-gray-900">Leaderboard</span>
+                    <span class="text-[10px] text-gray-400">Top explorers</span>
+                </a>
+                <a href="{{ route('rewards.page') }}" class="group card-hover flex flex-col items-center gap-3 p-6 rounded-2xl bg-gradient-to-b from-amber-50 to-white border border-amber-100 hover:border-amber-300 transition-all">
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-400 flex items-center justify-center text-2xl shadow-lg shadow-amber-200/50 group-hover:scale-110 transition-transform">🎁</div>
+                    <span class="text-sm font-bold text-gray-900">Rewards</span>
+                    <span class="text-[10px] text-gray-400">Redeem points</span>
+                </a>
+                <a href="#places" class="group card-hover flex flex-col items-center gap-3 p-6 rounded-2xl bg-gradient-to-b from-cyan-50 to-white border border-cyan-100 hover:border-cyan-300 transition-all">
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-400 flex items-center justify-center text-2xl shadow-lg shadow-cyan-200/50 group-hover:scale-110 transition-transform">🗺️</div>
+                    <span class="text-sm font-bold text-gray-900">Explore Places</span>
+                    <span class="text-[10px] text-gray-400">{{ \App\Models\Place::where('is_active', true)->count() }}+ destinations</span>
+                </a>
+                <a href="#download" class="group card-hover flex flex-col items-center gap-3 p-6 rounded-2xl bg-gradient-to-b from-indigo-50 to-white border border-indigo-100 hover:border-indigo-300 transition-all">
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-400 to-purple-400 flex items-center justify-center text-2xl shadow-lg shadow-indigo-200/50 group-hover:scale-110 transition-transform">👥</div>
+                    <span class="text-sm font-bold text-gray-900">Explorers</span>
+                    <span class="text-[10px] text-gray-400">{{ \App\Models\User::count() }}+ adventurers</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
     <!-- How It Works -->
     <section class="py-28 overflow-hidden relative" style="background: linear-gradient(180deg, #f0fdf4 0%, #ecfeff 30%, #eef2ff 60%, #fdf2f8 85%, #fff 100%);">
         {{-- Floating background icons --}}

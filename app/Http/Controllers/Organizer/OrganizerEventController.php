@@ -30,6 +30,9 @@ class OrganizerEventController extends Controller
         $events = $request->user()
             ->organizedEvents()
             ->with('place')
+            ->withCount(['bookings as pending_bookings_count' => function ($q) {
+                $q->where('status', \App\Enums\BookingStatus::Pending);
+            }])
             ->orderBy('created_at', 'desc')
             ->paginate(15);
 
