@@ -264,6 +264,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/users/{user}/buddy-request', [TravelBuddyController::class, 'store']);
     Route::post('/travel-buddies/{travelBuddy}/accept', [TravelBuddyController::class, 'accept']);
     Route::post('/travel-buddies/{travelBuddy}/decline', [TravelBuddyController::class, 'decline']);
+    Route::post('/travel-buddies/{travelBuddy}/cancel', [TravelBuddyController::class, 'cancel']);
     Route::delete('/travel-buddies/{travelBuddy}', [TravelBuddyController::class, 'remove']);
 
     // Achievements & Leaderboard

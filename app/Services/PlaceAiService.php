@@ -87,19 +87,37 @@ class PlaceAiService
         $existingNames = Place::pluck('name')->implode(', ');
         $categoryFilter = $category ? "Category: {$category} only." : 'Mix of all categories.';
 
+        // Enhanced prompt for mountains — focus on real, hikeable destinations
+        $mountainExtra = '';
+        if ($category === 'mountain') {
+            $mountainExtra = "
+IMPORTANT: Only include REAL mountains in the Philippines that are actually visited by hikers and climbers. These must be:
+- Mountains with established hiking trails that people actually trek
+- Known in the Philippine hiking/mountaineering community
+- Have real trail systems (not just random peaks on a map)
+- Include popular day hikes, overnight climbs, and multi-day traverses
+- Cover all regions: Luzon, Visayas, and Mindanao
+- Include a mix of: beginner-friendly mountains (trail class 1-3), moderate climbs (trail class 4-5), and challenging peaks (trail class 6-9)
+- Include both well-known mountains (like Mt. Apo, Mt. Pulag) AND lesser-known but actively hiked mountains
+- Do NOT include mountains that are closed to hikers or have no established trails
+- Each mountain must have accurate elevation, trail class, and jump-off point
+";
+        }
+
         $prompt = "You are a Philippine travel expert and content writer. Generate exactly {$count} real travel destinations in the Philippines that are NOT in this list: [{$existingNames}].
 
 {$categoryFilter}
+{$mountainExtra}
 
 Categories: mountain, beach, island, falls, river, lake, campsite, historical, food_destination, road_trip, hidden_gem
 
 For each place return a JSON array with objects containing:
-- name: official place name (use the most commonly known name)
+- name: official place name (use the most commonly known name, e.g. 'Mt. Batulao' not 'Mount Batulao Peak')
 - category: one of the categories above
 - description: Write a detailed, engaging 5-8 sentence description. Include: what makes it special, what visitors can expect, the landscape/scenery, best time to visit, any unique features or history. Write like a travel blog — informative but exciting.
 - region: Philippine region — must use the FULL official name from this list: National Capital Region (NCR), Cordillera Administrative Region (CAR), Region I — Ilocos Region, Region II — Cagayan Valley, Region III — Central Luzon, Region IV-A — CALABARZON, MIMAROPA Region, Region V — Bicol Region, Region VI — Western Visayas, Region VII — Central Visayas, Region VIII — Eastern Visayas, Region IX — Zamboanga Peninsula, Region X — Northern Mindanao, Region XI — Davao Region, Region XII — SOCCSKSARGEN, Region XIII — Caraga, Bangsamoro (BARMM)
 - province: Philippine province (exact name)
-- latitude: decimal (accurate to 4 decimal places, must be real coordinates)
+- latitude: decimal (accurate to 4 decimal places, must be real coordinates for this specific mountain/place)
 - longitude: decimal (accurate to 4 decimal places, must be real coordinates)
 - xp_reward: integer 30-250 based on difficulty and remoteness (harder to reach = more XP)
 - meta: object with category-specific fields:

@@ -199,6 +199,24 @@ class TravelBuddyController extends Controller
     }
 
     /**
+     * Cancel a buddy request I sent (requester only).
+     */
+    public function cancel(Request $request, TravelBuddy $travelBuddy): JsonResponse
+    {
+        if ($travelBuddy->requester_id !== $request->user()->id) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+
+        if ($travelBuddy->status !== 'pending') {
+            return response()->json(['message' => 'Request is not pending.'], 422);
+        }
+
+        $travelBuddy->delete();
+
+        return response()->json(['message' => 'Buddy request cancelled.']);
+    }
+
+    /**
      * Remove a travel buddy (either side can remove).
      */
     public function remove(Request $request, TravelBuddy $travelBuddy): JsonResponse

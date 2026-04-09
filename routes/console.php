@@ -8,8 +8,8 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote')->hourly();
 
-// AI Place Discovery — runs every 10 minutes, discovers 5 new places
-Schedule::command('places:discover --count=5')
+// AI Place Discovery — focus on mountains first (every 10 min, 10 mountains)
+Schedule::command('places:discover --count=10 --category=mountain')
     ->everyTenMinutes()
     ->withoutOverlapping()
     ->appendOutputTo(storage_path('logs/places-discover.log'));
