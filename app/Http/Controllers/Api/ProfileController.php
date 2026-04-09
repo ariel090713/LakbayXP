@@ -68,8 +68,9 @@ class ProfileController extends Controller
     /**
      * Show a user's public travel profile.
      */
-    public function show(User $user): JsonResponse
+    public function show(Request $request, User $user): JsonResponse
     {
+        $me = $request->user();
         $user->loadCount(['unlockedPlaces', 'badges', 'followers', 'following']);
 
         $categoryCounts = [];
@@ -82,7 +83,7 @@ class ProfileController extends Controller
         $xpService = app(\App\Services\XpService::class);
         $xpProgress = $xpService->getProgress($user);
 
-        // Ranking — no ties, tiebreaker: older account ranks higher
+        // Ranking
         $ranking = User::where('role', 'user')
             ->where(function ($q) use ($user) {
                 $q->where('level', '>', $user->level ?? 1)
@@ -96,6 +97,18 @@ class ProfileController extends Controller
                          ->where('created_at', '<', $user->created_at);
                   });
             })->count() + 1;
+
+        // Follow/buddy status relative to the authenticated user
+        $isFollowing = $me->following()->where('following_id', $user->id)->exists();
+
+        $buddyRecord = \App\Models\TravelBuddy::where(function ($q) use ($me, $user) {
+            $q->where(fn ($q2) => $q2->where('requester_id', $me->id)->where('receiver_id', $user->id))
+              ->orWhere(fn ($q2) => $q2->where('requester_id', $user->id)->where('receiver_id', $me->id));
+        })->first();
+
+        $isBuddy = $buddyRecord && $buddyRecord->status === 'accepted';
+        $buddyRequestSent = $buddyRecord && $buddyRecord->status === 'pending' && $buddyRecord->requester_id === $me->id;
+        $buddyRequestReceived = $buddyRecord && $buddyRecord->status === 'pending' && $buddyRecord->receiver_id === $me->id;
 
         return response()->json([
             'data' => [
@@ -120,6 +133,12 @@ class ProfileController extends Controller
                     ->where(fn ($q) => $q->where('requester_id', $user->id)->orWhere('receiver_id', $user->id))
                     ->count(),
                 'ranking' => $ranking,
+                'is_following' => $isFollowing,
+                'is_buddy' => $isBuddy,
+                'buddy_request_sent' => $buddyRequestSent,
+                'buddy_request_received' => $buddyRequestReceived,
+                'buddy_request_id' => $buddyRecord?->id,
+                'firebase_uid' => $user->firebase_uid,
                 'badges' => $user->badges->map(fn ($badge) => [
                     'id' => $badge->id,
                     'name' => $badge->name,
