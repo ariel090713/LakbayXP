@@ -116,17 +116,20 @@ Route::middleware('auth:sanctum')->group(function () {
             $xpProgress = ['level' => $user->level ?? 1, 'total_xp' => $user->xp ?? 0, 'progress_percent' => 0];
         }
 
-        // Calculate ranking — ties allowed (same level + same xp = same rank)
+        // Calculate ranking — no ties, tiebreaker: older account ranks higher
         $myRanking = \App\Models\User::where('role', 'user')
             ->where(function ($q) use ($user) {
                 $q->where('level', '>', $user->level ?? 1)
                   ->orWhere(function ($q2) use ($user) {
                       $q2->where('level', $user->level ?? 1)
                          ->where('xp', '>', $user->xp ?? 0);
+                  })
+                  ->orWhere(function ($q2) use ($user) {
+                      $q2->where('level', $user->level ?? 1)
+                         ->where('xp', $user->xp ?? 0)
+                         ->where('created_at', '<', $user->created_at);
                   });
-            })
-            ->distinct('level', 'xp')
-            ->count() + 1;
+            })->count() + 1;
 
         return response()->json([
             'id' => $user->id,

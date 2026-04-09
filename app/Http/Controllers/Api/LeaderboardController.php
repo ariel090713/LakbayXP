@@ -10,12 +10,14 @@ use Illuminate\Http\Request;
 class LeaderboardController extends Controller
 {
     /**
-     * Paginated leaderboard with dense ranking (ties = same rank).
+     * Paginated leaderboard. No ties — tiebreaker: older account ranks higher.
+     * Sort: level desc → xp desc → created_at asc
      */
     public function index(Request $request): JsonResponse
     {
         $perPage = $request->input('per_page', 20);
         $page = $request->input('page', 1);
+        $offset = ($page - 1) * $perPage;
 
         $users = User::query()
             ->where('role', 'user')
@@ -23,23 +25,12 @@ class LeaderboardController extends Controller
             ->withCount(['unlockedPlaces', 'badges', 'followers'])
             ->orderByDesc('level')
             ->orderByDesc('xp')
+            ->orderBy('created_at')
             ->paginate($perPage);
 
-        // Calculate dense rank for each user on this page
-        // Count distinct (level, xp) combos that are strictly higher
-        $users->getCollection()->transform(function ($user) {
-            $rank = User::where('role', 'user')
-                ->where(function ($q) use ($user) {
-                    $q->where('level', '>', $user->level)
-                      ->orWhere(function ($q2) use ($user) {
-                          $q2->where('level', $user->level)
-                             ->where('xp', '>', $user->xp);
-                      });
-                })
-                ->selectRaw('DISTINCT level, xp')
-                ->count() + 1;
-
-            $user->rank = $rank;
+        // Add sequential rank based on page offset
+        $users->getCollection()->transform(function ($user, $index) use ($offset) {
+            $user->rank = $offset + $index + 1;
             return $user;
         });
 

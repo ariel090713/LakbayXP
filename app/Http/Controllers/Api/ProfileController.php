@@ -82,6 +82,21 @@ class ProfileController extends Controller
         $xpService = app(\App\Services\XpService::class);
         $xpProgress = $xpService->getProgress($user);
 
+        // Ranking — no ties, tiebreaker: older account ranks higher
+        $ranking = User::where('role', 'user')
+            ->where(function ($q) use ($user) {
+                $q->where('level', '>', $user->level ?? 1)
+                  ->orWhere(function ($q2) use ($user) {
+                      $q2->where('level', $user->level ?? 1)
+                         ->where('xp', '>', $user->xp ?? 0);
+                  })
+                  ->orWhere(function ($q2) use ($user) {
+                      $q2->where('level', $user->level ?? 1)
+                         ->where('xp', $user->xp ?? 0)
+                         ->where('created_at', '<', $user->created_at);
+                  });
+            })->count() + 1;
+
         return response()->json([
             'data' => [
                 'id' => $user->id,
@@ -101,6 +116,7 @@ class ProfileController extends Controller
                 'badge_count' => $user->badges_count,
                 'followers_count' => $user->followers_count,
                 'following_count' => $user->following_count,
+                'ranking' => $ranking,
                 'badges' => $user->badges->map(fn ($badge) => [
                     'id' => $badge->id,
                     'name' => $badge->name,
