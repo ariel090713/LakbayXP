@@ -53,7 +53,13 @@ class RewardService
             'approved_at' => now(),
         ]);
 
-        return $redemption->refresh();
+        $redemption->refresh();
+
+        try {
+            app(NotificationService::class)->notifyRedemptionApproved($redemption->user, $redemption);
+        } catch (\Throwable $e) {}
+
+        return $redemption;
     }
 
     /**
@@ -73,7 +79,13 @@ class RewardService
                 'admin_notes' => $notes,
             ]);
 
-            return $redemption->refresh();
+            $redemption->refresh();
+
+            try {
+                app(NotificationService::class)->notifyRedemptionRejected($redemption->user, $redemption);
+            } catch (\Throwable $e) {}
+
+            return $redemption;
         });
     }
 

@@ -178,4 +178,51 @@ class NotificationService
             $this->notifyBookingRejected($booking);
         }
     }
+
+    // ── Buddy Request Declined ──
+    public function notifyBuddyDeclined(User $requester, User $decliner): void
+    {
+        $this->notify($requester, 'buddy_declined', '🤝 Buddy Request Declined', "{$decliner->name} declined your travel buddy request.", [
+            'user_id' => $decliner->id,
+        ]);
+    }
+
+    // ── Reward Redemption Approved ──
+    public function notifyRedemptionApproved(User $user, \App\Models\RewardRedemption $redemption): void
+    {
+        $redemption->loadMissing('reward');
+        $this->notify($user, 'redemption_approved', '🎁 Reward Approved!', "Your redemption of \"{$redemption->reward->name}\" has been approved!", [
+            'redemption_id' => $redemption->id,
+            'reward_id' => $redemption->reward_id,
+        ]);
+    }
+
+    // ── Reward Redemption Rejected ──
+    public function notifyRedemptionRejected(User $user, \App\Models\RewardRedemption $redemption): void
+    {
+        $redemption->loadMissing('reward');
+        $this->notify($user, 'redemption_rejected', '🎁 Reward Rejected', "Your redemption of \"{$redemption->reward->name}\" was rejected. Your points have been refunded.", [
+            'redemption_id' => $redemption->id,
+            'reward_id' => $redemption->reward_id,
+        ]);
+    }
+
+    // ── Comment Reply ──
+    public function notifyCommentReply(User $parentCommenter, User $replier, \App\Models\Comment $reply): void
+    {
+        if ($parentCommenter->id === $replier->id) return;
+        $this->notify($parentCommenter, 'comment_reply', '💬 New Reply', "{$replier->name} replied to your comment.", [
+            'post_id' => $reply->post_id,
+            'comment_id' => $reply->id,
+            'parent_comment_id' => $reply->parent_id,
+        ]);
+    }
+
+    // ── Points Granted by Admin ──
+    public function notifyPointsGranted(User $user, int $amount, string $description): void
+    {
+        $this->notify($user, 'points_earned', '⭐ Points Bonus!', "+{$amount} points: {$description}", [
+            'amount' => $amount,
+        ]);
+    }
 }

@@ -108,7 +108,13 @@ class PointsService
      */
     public function adminGrantPoints(User $admin, User $user, int $amount, string $description): PointsHistory
     {
-        return $this->awardPoints($user, $amount, 'admin', $description, grantedBy: $admin);
+        $history = $this->awardPoints($user, $amount, 'admin', $description, grantedBy: $admin);
+
+        try {
+            app(NotificationService::class)->notifyPointsGranted($user, $amount, $description);
+        } catch (\Throwable $e) {}
+
+        return $history;
     }
 
     /**

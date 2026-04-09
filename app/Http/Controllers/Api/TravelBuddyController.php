@@ -195,6 +195,10 @@ class TravelBuddyController extends Controller
 
         $travelBuddy->update(['status' => 'declined']);
 
+        try {
+            app(\App\Services\NotificationService::class)->notifyBuddyDeclined($travelBuddy->requester, $request->user());
+        } catch (\Throwable $e) {}
+
         return response()->json(['message' => 'Buddy request declined.']);
     }
 

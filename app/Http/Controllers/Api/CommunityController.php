@@ -290,6 +290,17 @@ class CommunityController extends Controller
         $post->loadMissing('user');
         app(\App\Services\NotificationService::class)->notifyComment($post->user, $request->user(), $post);
 
+        // Notify parent commenter if this is a reply
+        if ($comment->parent_id) {
+            $parentComment = Comment::find($comment->parent_id);
+            if ($parentComment && $parentComment->user_id !== $request->user()->id) {
+                $parentUser = \App\Models\User::find($parentComment->user_id);
+                if ($parentUser) {
+                    app(\App\Services\NotificationService::class)->notifyCommentReply($parentUser, $request->user(), $comment);
+                }
+            }
+        }
+
         return response()->json(['data' => $comment], 201);
     }
 
