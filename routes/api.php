@@ -151,6 +151,9 @@ Route::middleware('auth:sanctum')->group(function () {
             'badges_count' => $user->badges_count ?? 0,
             'followers_count' => $followersCount,
             'following_count' => $followingCount,
+            'buddies_count' => \App\Models\TravelBuddy::where('status', 'accepted')
+                ->where(fn ($q) => $q->where('requester_id', $user->id)->orWhere('receiver_id', $user->id))
+                ->count(),
             'my_ranking' => $myRanking,
             'created_at' => $user->created_at,
         ]);

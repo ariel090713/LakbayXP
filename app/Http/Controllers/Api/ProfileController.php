@@ -116,6 +116,9 @@ class ProfileController extends Controller
                 'badge_count' => $user->badges_count,
                 'followers_count' => $user->followers_count,
                 'following_count' => $user->following_count,
+                'buddies_count' => \App\Models\TravelBuddy::where('status', 'accepted')
+                    ->where(fn ($q) => $q->where('requester_id', $user->id)->orWhere('receiver_id', $user->id))
+                    ->count(),
                 'ranking' => $ranking,
                 'badges' => $user->badges->map(fn ($badge) => [
                     'id' => $badge->id,
