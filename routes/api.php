@@ -136,6 +136,7 @@ Route::middleware('auth:sanctum')->group(function () {
             'name' => $user->name,
             'email' => $user->email,
             'username' => $user->username,
+            'bio' => $user->bio,
             'avatar_path' => $user->avatar_path,
             'avatar_url' => $user->avatar_path ? \Storage::disk('s3')->url($user->avatar_path) : null,
             'cover_photo_path' => $user->cover_photo_path ?? null,
