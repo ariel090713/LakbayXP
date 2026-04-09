@@ -84,9 +84,14 @@ class ProfileController extends Controller
 
         return response()->json([
             'data' => [
+                'id' => $user->id,
+                'name' => $user->name,
                 'username' => $user->username,
                 'bio' => $user->bio,
                 'avatar_path' => $user->avatar_path,
+                'avatar_url' => $user->avatar_url,
+                'cover_photo_path' => $user->cover_photo_path ?? null,
+                'cover_photo_url' => $user->cover_photo_url,
                 'explorer_level' => $user->explorer_level,
                 'level' => $user->level,
                 'xp' => $xpProgress,
