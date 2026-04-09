@@ -149,7 +149,7 @@ class CommunityController extends Controller
     /**
      * Get a single post with comments.
      */
-    public function showPost(Post $post): JsonResponse
+    public function showPost(Request $request, Post $post): JsonResponse
     {
         $post->load([
             'user:id,name,username,avatar_path,level',
@@ -165,6 +165,10 @@ class CommunityController extends Controller
             },
         ]);
         $post->loadCount(['reactions', 'comments']);
+        $post->reaction_counts = $post->reaction_counts;
+        $post->user_reaction = Reaction::where('post_id', $post->id)
+            ->where('user_id', $request->user()->id)
+            ->value('type');
 
         return response()->json(['data' => $post]);
     }
@@ -449,6 +453,17 @@ class CommunityController extends Controller
             ->withCount(['reactions', 'comments'])
             ->orderByDesc('created_at')
             ->paginate($request->input('per_page', 15));
+
+        // Add reaction_counts and user_reaction to match feed response
+        $userReactions = Reaction::where('user_id', $me->id)
+            ->whereIn('post_id', $posts->pluck('id'))
+            ->pluck('type', 'post_id');
+
+        $posts->getCollection()->transform(function ($post) use ($userReactions) {
+            $post->user_reaction = $userReactions[$post->id] ?? null;
+            $post->reaction_counts = $post->reaction_counts;
+            return $post;
+        });
 
         return response()->json($posts);
     }
