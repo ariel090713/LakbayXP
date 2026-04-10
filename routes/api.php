@@ -424,4 +424,15 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
     // General file upload (chat attachments, etc.)
     Route::post('/upload', [\App\Http\Controllers\Api\UploadController::class, 'store'])->middleware('throttle:upload');
+
+    // Reviews
+    Route::post('/places/{place}/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'createPlaceReview'])->middleware('throttle:write');
+    Route::get('/places/{place:slug}/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'placeReviews']);
+    Route::post('/organizers/{user}/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'createOrganizerReview'])->middleware('throttle:write');
+    Route::get('/organizers/{user}/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'organizerReviews']);
+    Route::post('/events/{event}/joiner-reviews', [\App\Http\Controllers\Api\ReviewController::class, 'createJoinerReview'])->middleware('throttle:write');
+    Route::get('/users/{user}/joiner-reviews', [\App\Http\Controllers\Api\ReviewController::class, 'joinerReviews']);
+    Route::put('/reviews/{review}', [\App\Http\Controllers\Api\ReviewController::class, 'update'])->middleware('throttle:write');
+    Route::delete('/reviews/{review}', [\App\Http\Controllers\Api\ReviewController::class, 'destroy']);
+    Route::get('/my-reviews', [\App\Http\Controllers\Api\ReviewController::class, 'myReviews']);
 });
