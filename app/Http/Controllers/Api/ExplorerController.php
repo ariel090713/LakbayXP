@@ -22,8 +22,7 @@ class ExplorerController extends Controller
         $sort = $request->input('sort', 'top'); // top, active, popular, near_me, newest
         $perPage = $request->input('per_page', 20);
 
-        $query = User::where('role', 'user')
-            ->where('id', '!=', $user->id)
+        $query = User::where('id', '!=', $user->id)
             ->withCount(['unlockedPlaces', 'badges', 'followers', 'following']);
 
         // ── Search ──

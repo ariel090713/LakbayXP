@@ -512,7 +512,6 @@ class CommunityController extends Controller
             if (!empty($mutuals)) {
                 $suggestions = $suggestions->merge(
                     \App\Models\User::whereIn('id', $mutuals)
-                        ->where('role', 'user')
                         ->withCount(['unlockedPlaces', 'badges', 'followers'])
                         ->get()
                         ->map(function ($u) { $u->suggestion_reason = 'mutual_friends'; return $u; })
@@ -542,7 +541,6 @@ class CommunityController extends Controller
             if (!empty($eventBuddies)) {
                 $suggestions = $suggestions->merge(
                     \App\Models\User::whereIn('id', $eventBuddies)
-                        ->where('role', 'user')
                         ->withCount(['unlockedPlaces', 'badges', 'followers'])
                         ->get()
                         ->map(function ($u) { $u->suggestion_reason = 'same_events'; return $u; })
@@ -567,7 +565,6 @@ class CommunityController extends Controller
             if (!empty($placemates)) {
                 $suggestions = $suggestions->merge(
                     \App\Models\User::whereIn('id', $placemates)
-                        ->where('role', 'user')
                         ->withCount(['unlockedPlaces', 'badges', 'followers'])
                         ->get()
                         ->map(function ($u) { $u->suggestion_reason = 'similar_places'; return $u; })
@@ -577,8 +574,7 @@ class CommunityController extends Controller
 
         // 4. Top explorers — highest level active users
         if ($suggestions->count() < $limit) {
-            $topIds = \App\Models\User::where('role', 'user')
-                ->whereNotIn('id', $excludeIds)
+            $topIds = \App\Models\User::whereNotIn('id', $excludeIds)
                 ->whereNotIn('id', $suggestions->pluck('id'))
                 ->where('xp', '>', 0)
                 ->orderByDesc('level')
@@ -599,8 +595,7 @@ class CommunityController extends Controller
 
         // 5. Random discovery — fill remaining
         if ($suggestions->count() < $limit) {
-            $randomIds = \App\Models\User::where('role', 'user')
-                ->whereNotIn('id', $excludeIds)
+            $randomIds = \App\Models\User::whereNotIn('id', $excludeIds)
                 ->whereNotIn('id', $suggestions->pluck('id'))
                 ->inRandomOrder()
                 ->take($limit - $suggestions->count())

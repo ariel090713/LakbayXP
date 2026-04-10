@@ -117,8 +117,7 @@ Route::middleware('auth:sanctum')->group(function () {
         }
 
         // Calculate ranking — no ties, tiebreaker: older account ranks higher
-        $myRanking = \App\Models\User::where('role', 'user')
-            ->where(function ($q) use ($user) {
+        $myRanking = \App\Models\User::where(function ($q) use ($user) {
                 $q->where('level', '>', $user->level ?? 1)
                   ->orWhere(function ($q2) use ($user) {
                       $q2->where('level', $user->level ?? 1)

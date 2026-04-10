@@ -20,7 +20,6 @@ class LeaderboardController extends Controller
         $offset = ($page - 1) * $perPage;
 
         $users = User::query()
-            ->where('role', 'user')
             ->where('xp', '>', 0)
             ->withCount(['unlockedPlaces', 'badges', 'followers'])
             ->orderByDesc('level')

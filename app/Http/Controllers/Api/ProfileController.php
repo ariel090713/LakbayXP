@@ -84,8 +84,7 @@ class ProfileController extends Controller
         $xpProgress = $xpService->getProgress($user);
 
         // Ranking
-        $ranking = User::where('role', 'user')
-            ->where(function ($q) use ($user) {
+        $ranking = User::where(function ($q) use ($user) {
                 $q->where('level', '>', $user->level ?? 1)
                   ->orWhere(function ($q2) use ($user) {
                       $q2->where('level', $user->level ?? 1)
