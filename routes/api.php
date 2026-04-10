@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\Route;
 */
 
 // Public auth endpoint — mobile Firebase login
-Route::post('/auth/firebase', [AuthController::class, 'firebaseLogin']);
+Route::post('/auth/firebase', [AuthController::class, 'firebaseLogin'])->middleware('throttle:auth');
 
 // Public categories endpoint (no auth needed)
 Route::get('/categories', function () {
@@ -85,7 +85,7 @@ Route::get('/regions', function () {
     return response()->json(['data' => $regions]);
 });
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // FCM token registration
     Route::post('/auth/fcm-token', [AuthController::class, 'updateFcmToken']);
 
@@ -161,7 +161,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Events
     Route::get('/events', [EventController::class, 'index']);
     Route::get('/events/{event:slug}', [EventController::class, 'show']);
-    Route::post('/events/{event}/book', [BookingController::class, 'store']);
+    Route::post('/events/{event}/book', [BookingController::class, 'store'])->middleware('throttle:booking');
     Route::get('/my-bookings', [BookingController::class, 'myBookings']);
     Route::delete('/bookings/{booking}', [BookingController::class, 'cancel']);
 
@@ -170,6 +170,22 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/events/{event}/complete', [EventController::class, 'complete']);
         Route::post('/bookings/{booking}/approve', [BookingController::class, 'approve']);
         Route::post('/bookings/{booking}/reject', [BookingController::class, 'reject']);
+    });
+
+    // Organizer Dashboard API (for mobile app)
+    Route::middleware('role:organizer')->prefix('organizer')->group(function () {
+        Route::get('/dashboard', [\App\Http\Controllers\Api\OrganizerApiController::class, 'dashboard']);
+        Route::get('/events', [\App\Http\Controllers\Api\OrganizerApiController::class, 'events']);
+        Route::get('/events/{event}', [\App\Http\Controllers\Api\OrganizerApiController::class, 'showEvent']);
+        Route::post('/events', [\App\Http\Controllers\Api\OrganizerApiController::class, 'createEvent']);
+        Route::post('/events/{event}/update', [\App\Http\Controllers\Api\OrganizerApiController::class, 'updateEvent']);
+        Route::post('/events/{event}/publish', [\App\Http\Controllers\Api\OrganizerApiController::class, 'publishEvent']);
+        Route::post('/events/{event}/cancel', [\App\Http\Controllers\Api\OrganizerApiController::class, 'cancelEvent']);
+        Route::post('/events/{event}/complete', [\App\Http\Controllers\Api\OrganizerApiController::class, 'completeEvent']);
+        Route::post('/bookings/{booking}/approve', [\App\Http\Controllers\Api\OrganizerApiController::class, 'approveBooking']);
+        Route::post('/bookings/{booking}/reject', [\App\Http\Controllers\Api\OrganizerApiController::class, 'rejectBooking']);
+        Route::post('/events/{event}/approve-all', [\App\Http\Controllers\Api\OrganizerApiController::class, 'approveAllBookings']);
+        Route::get('/places', [\App\Http\Controllers\Api\OrganizerApiController::class, 'places']);
     });
 
     // Admin API endpoints
@@ -251,8 +267,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/profile', [ProfileController::class, 'update']);
 
     // Social — Follow
-    Route::post('/users/{user}/follow', [FollowController::class, 'store']);
-    Route::delete('/users/{user}/unfollow', [FollowController::class, 'destroy']);
+    Route::post('/users/{user}/follow', [FollowController::class, 'store'])->middleware('throttle:social');
+    Route::delete('/users/{user}/unfollow', [FollowController::class, 'destroy'])->middleware('throttle:social');
     Route::get('/users/{user}/followers', [FollowController::class, 'followers']);
     Route::get('/users/{user}/following', [FollowController::class, 'following']);
 
@@ -260,7 +276,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/travel-buddies', [TravelBuddyController::class, 'index']);
     Route::get('/travel-buddies/pending-received', [TravelBuddyController::class, 'pendingReceived']);
     Route::get('/travel-buddies/pending-sent', [TravelBuddyController::class, 'pendingSent']);
-    Route::post('/users/{user}/buddy-request', [TravelBuddyController::class, 'store']);
+    Route::post('/users/{user}/buddy-request', [TravelBuddyController::class, 'store'])->middleware('throttle:social');
     Route::post('/travel-buddies/{travelBuddy}/accept', [TravelBuddyController::class, 'accept']);
     Route::post('/travel-buddies/{travelBuddy}/decline', [TravelBuddyController::class, 'decline']);
     Route::post('/travel-buddies/{travelBuddy}/cancel', [TravelBuddyController::class, 'cancel']);
@@ -351,15 +367,15 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Community Feed
     Route::get('/feed', [CommunityController::class, 'feed']);
-    Route::post('/posts', [CommunityController::class, 'createPost']);
+    Route::post('/posts', [CommunityController::class, 'createPost'])->middleware('throttle:write');
     Route::get('/posts/{post}', [CommunityController::class, 'showPost']);
     Route::put('/posts/{post}', [CommunityController::class, 'updatePost']);
     Route::delete('/posts/{post}', [CommunityController::class, 'deletePost']);
     Route::delete('/posts/{post}/images/{postImage}', [CommunityController::class, 'deletePostImage']);
     Route::get('/posts/{post}/comments', [CommunityController::class, 'getComments']);
     Route::post('/posts/{post}/comments', [CommunityController::class, 'addComment']);
-    Route::post('/posts/{post}/react', [CommunityController::class, 'toggleReaction']);
-    Route::post('/comments/{comment}/react', [CommunityController::class, 'toggleCommentReaction']);
+    Route::post('/posts/{post}/react', [CommunityController::class, 'toggleReaction'])->middleware('throttle:write');
+    Route::post('/comments/{comment}/react', [CommunityController::class, 'toggleCommentReaction'])->middleware('throttle:write');
     Route::get('/users/{user}/posts', [CommunityController::class, 'userPosts']);
     Route::get('/my-posts', function (Request $request) {
         return app(CommunityController::class)->userPosts($request, $request->user());
@@ -402,4 +418,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Explorers list
     Route::get('/explorers', [ExplorerController::class, 'index']);
     Route::post('/location', [ExplorerController::class, 'updateLocation']);
+
+    // General file upload (chat attachments, etc.)
+    Route::post('/upload', [\App\Http\Controllers\Api\UploadController::class, 'store'])->middleware('throttle:upload');
 });

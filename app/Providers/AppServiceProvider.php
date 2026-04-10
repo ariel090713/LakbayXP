@@ -3,6 +3,9 @@
 namespace App\Providers;
 
 use App\Services\NotificationService;
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Kreait\Firebase\Contract\Messaging;
 use Illuminate\Support\ServiceProvider;
 
@@ -29,6 +32,42 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // ── Rate Limiters ──
+
+        // Default API: 120 requests/min per user (or IP if unauthenticated)
+        RateLimiter::for('api', function (Request $request) {
+            return Limit::perMinute(120)->by($request->user()?->id ?: $request->ip());
+        });
+
+        // Auth endpoints: 10/min per IP (prevent brute force)
+        RateLimiter::for('auth', function (Request $request) {
+            return Limit::perMinute(10)->by($request->ip());
+        });
+
+        // Write operations (posts, comments, reactions): 30/min per user
+        RateLimiter::for('write', function (Request $request) {
+            return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
+        });
+
+        // Upload: 20/min per user
+        RateLimiter::for('upload', function (Request $request) {
+            return Limit::perMinute(20)->by($request->user()?->id ?: $request->ip());
+        });
+
+        // Booking: 10/min per user (prevent spam booking)
+        RateLimiter::for('booking', function (Request $request) {
+            return Limit::perMinute(10)->by($request->user()?->id ?: $request->ip());
+        });
+
+        // Follow/buddy: 30/min per user
+        RateLimiter::for('social', function (Request $request) {
+            return Limit::perMinute(30)->by($request->user()?->id ?: $request->ip());
+        });
+
+        // Heavy reads (leaderboard, explorers): 60/min per user
+        RateLimiter::for('heavy', function (Request $request) {
+            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+        });
         // Support Firebase credentials as: file path, JSON string, or base64-encoded JSON.
         $creds = env('FIREBASE_CREDENTIALS');
         if ($creds) {
