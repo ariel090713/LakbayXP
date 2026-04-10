@@ -154,6 +154,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
                 ->where(fn ($q) => $q->where('requester_id', $user->id)->orWhere('receiver_id', $user->id))
                 ->count(),
             'my_ranking' => $myRanking,
+            'is_verified_organizer' => $user->is_verified_organizer ?? false,
+            'onboarding_completed' => $user->onboarding_completed ?? false,
             'created_at' => $user->created_at,
         ]);
     });

@@ -95,13 +95,25 @@ class PlaceController extends Controller
 
         $places = $query->paginate($request->input('per_page', 15));
 
+        // Add is_unlocked flag for each place
+        $userId = $request->user()->id;
+        $unlockedIds = \App\Models\PlaceUnlock::where('user_id', $userId)
+            ->whereIn('place_id', $places->pluck('id'))
+            ->pluck('place_id')
+            ->toArray();
+
+        $places->getCollection()->transform(function ($place) use ($unlockedIds) {
+            $place->is_unlocked = in_array($place->id, $unlockedIds);
+            return $place;
+        });
+
         return response()->json($places);
     }
 
     /**
      * Return a single place (only if active).
      */
-    public function show(Place $place): JsonResponse
+    public function show(Request $request, Place $place): JsonResponse
     {
         if (!$place->is_active) {
             return response()->json(['message' => 'Place not found.'], 404);
@@ -109,6 +121,11 @@ class PlaceController extends Controller
 
         $place->load(['images', 'meta']);
         $place->loadCount('unlockedByUsers');
+        $place->is_unlocked = $place->unlockedByUsers()->where('users.id', $request->user()->id)->exists();
+
+        // Average rating
+        $place->average_rating = round(\App\Models\Review::where('reviewable_type', 'place')->where('reviewable_id', $place->id)->avg('rating'), 1);
+        $place->reviews_count = \App\Models\Review::where('reviewable_type', 'place')->where('reviewable_id', $place->id)->count();
 
         return response()->json($place);
     }
