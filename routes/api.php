@@ -186,6 +186,9 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::post('/bookings/{booking}/reject', [\App\Http\Controllers\Api\OrganizerApiController::class, 'rejectBooking']);
         Route::post('/events/{event}/approve-all', [\App\Http\Controllers\Api\OrganizerApiController::class, 'approveAllBookings']);
         Route::get('/places', [\App\Http\Controllers\Api\OrganizerApiController::class, 'places']);
+        Route::post('/onboarding', [\App\Http\Controllers\Api\OrganizerApiController::class, 'onboarding']);
+        Route::get('/profile', [\App\Http\Controllers\Api\OrganizerApiController::class, 'profile']);
+        Route::post('/profile', [\App\Http\Controllers\Api\OrganizerApiController::class, 'updateProfile']);
     });
 
     // Admin API endpoints

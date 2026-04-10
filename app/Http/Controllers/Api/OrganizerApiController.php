@@ -352,4 +352,100 @@ class OrganizerApiController extends Controller
         $places = Place::where('is_active', true)->orderBy('name')->get(['id', 'name', 'slug', 'category']);
         return response()->json(['data' => $places]);
     }
+
+    /**
+     * Organizer onboarding — setup profile.
+     */
+    public function onboarding(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'organizer_type' => ['required', 'in:solo,agency,organization'],
+            'organization_name' => ['nullable', 'string', 'max:255'],
+            'phone' => ['required', 'string', 'max:20'],
+            'organizer_bio' => ['required', 'string', 'max:500'],
+            'specialties' => ['required', 'array', 'min:1'],
+            'specialties.*' => ['string'],
+            'social_facebook' => ['nullable', 'url', 'max:255'],
+            'social_instagram' => ['nullable', 'string', 'max:255'],
+            'social_website' => ['nullable', 'url', 'max:255'],
+        ]);
+
+        $request->user()->update([
+            'organizer_type' => $validated['organizer_type'],
+            'organization_name' => $validated['organization_name'],
+            'phone' => $validated['phone'],
+            'organizer_bio' => $validated['organizer_bio'],
+            'specialties' => $validated['specialties'],
+            'social_links' => [
+                'facebook' => $validated['social_facebook'] ?? null,
+                'instagram' => $validated['social_instagram'] ?? null,
+                'website' => $validated['social_website'] ?? null,
+            ],
+            'onboarding_completed' => true,
+        ]);
+
+        return response()->json(['message' => 'Onboarding complete.', 'user' => $request->user()]);
+    }
+
+    /**
+     * Get organizer profile.
+     */
+    public function profile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        return response()->json([
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'username' => $user->username,
+            'avatar_url' => $user->avatar_url,
+            'organizer_type' => $user->organizer_type,
+            'organization_name' => $user->organization_name,
+            'phone' => $user->phone,
+            'organizer_bio' => $user->organizer_bio,
+            'specialties' => $user->specialties,
+            'social_links' => $user->social_links,
+            'is_verified_organizer' => $user->is_verified_organizer,
+            'onboarding_completed' => $user->onboarding_completed,
+        ]);
+    }
+
+    /**
+     * Update organizer profile.
+     */
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'organization_name' => ['nullable', 'string', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'organizer_bio' => ['nullable', 'string', 'max:500'],
+            'specialties' => ['nullable', 'array'],
+            'specialties.*' => ['string'],
+            'social_facebook' => ['nullable', 'string', 'max:255'],
+            'social_instagram' => ['nullable', 'string', 'max:255'],
+            'social_website' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $user = $request->user();
+
+        $updates = array_filter([
+            'organization_name' => $validated['organization_name'] ?? null,
+            'phone' => $validated['phone'] ?? null,
+            'organizer_bio' => $validated['organizer_bio'] ?? null,
+            'specialties' => $validated['specialties'] ?? null,
+        ], fn ($v) => $v !== null);
+
+        if (isset($validated['social_facebook']) || isset($validated['social_instagram']) || isset($validated['social_website'])) {
+            $existing = $user->social_links ?? [];
+            $updates['social_links'] = array_merge($existing, array_filter([
+                'facebook' => $validated['social_facebook'] ?? null,
+                'instagram' => $validated['social_instagram'] ?? null,
+                'website' => $validated['social_website'] ?? null,
+            ], fn ($v) => $v !== null));
+        }
+
+        $user->update($updates);
+
+        return response()->json(['message' => 'Profile updated.', 'user' => $user->fresh()]);
+    }
 }
